@@ -1,0 +1,223 @@
+"""Original protocol tests. These assert our implementation's behaviour,
+nout a copy of any vendor test suite."""
+
+import pathlib
+import socket
+import sys
+import threading
+import time
+import unittest
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from tvunboxed import protocol  # noqa: E402
+from tvunboxed.client import Session  # noqa: E402
+
+
+class DiscoveryPacketTests(unittest.TestCase):
+    def test_layout(self):
+        pkt = protocol.build_discovery_packet()
+        self.assertEqual(len(pkt), protocol.DISCOVERY_PACKET_LEN)
+        self.assertEqual(int.from_bytes(pkt[0x0C:0x10], "big"), len(protocol.DISCOVERY_MAGIC))
+        self.assertEqual(pkt[protocol.DISCOVERY_MAGIC_OFFSET:
+                             protocol.DISCOVERY_MAGIC_OFFSET + len(protocol.DISCOVERY_MAGIC)],
+                         protocol.DISCOVERY_MAGIC)
+
+    def test_reply_parsing(self):
+        info = protocol.parse_discovery_reply(
+            b"ECloudBox516:ExampleTV:8121:24680:whynot:sn=0x0000:1")
+        self.assertIsNotNone(info)
+        self.assertEqual(info.control_port, 8121)
+        self.assertEqual(info.speaker_port, 24680)
+        self.assertEqual(info.serial, "sn=0x0000")
+
+    def test_reply_rejection(self):
+        self.assertIsNone(protocol.parse_discovery_reply(b"noise"))
+        self.assertIsNone(protocol.parse_discovery_reply(b"ECloudBox516:x:PORT:1:2"))
+
+
+class MessageTests(unittest.TestCase):
+    def test_lines(self):
+        self.assertEqual(protocol.probe_message(), "sayHello\r\nTVunboxed\r\n\r\n")
+        self.assertEqual(protocol.identify_message("M"), "getFeatures\r\nM\r\n\r\n")
+
+    def test_handshake(self):
+        msg = protocol.handshake_message("/", 1, "marker")
+        self.assertEqual(msg, "auth\r\n/ 1 marker\r\n\r\n")
+
+    def test_key_variants(self):
+        self.assertEqual(protocol.key(24), "KEYEVENT\r\n24\r\n\r\n")
+        self.assertEqual(protocol.key(26, long_press=True),
+                         "KEYEVENT\r\n26\r\nlongpress\r\n\r\n")
+
+    def test_volume_clamp(self):
+        self.assertIn("setVolume 100", protocol.volume(999))
+        self.assertIn("setVolume 0", protocol.volume(-5))
+
+    def test_launch_validation(self):
+        self.assertEqual(protocol.launch(" com.x "), "STARTAPPEVNET\r\ncom.x\r\n\r\n")
+        with self.assertRaises(ValueError):
+            protocol.launch("   ")
+
+
+class SessionTests(unittest.TestCase):
+    def test_session_round_trip(self):
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(1)
+        port = srv.getsockname()[1]
+        seen = []
+
+        def serve():
+            conn, _ = srv.accept()
+            conn.settimeout(1.5)
+            buf = b""
+            end = time.monotonic() + 2.0
+            while time.monotonic() < end:
+                try:
+                    chunk = conn.recv(1024)
+                except socket.timeout:
+                    break
+                if not chunk:
+                    break
+                buf += chunk
+                while b"\r\n\r\n" in buf:
+                    record, buf = buf.split(b"\r\n\r\n", 1)
+                    seen.append(record.decode())
+                    if record.startswith(b"getFeatures"):
+                        conn.sendall(b"server_features:sn=0x0000 v=91 m=T ap=the TV control service\r\n\r\n")
+            conn.close()
+            srv.close()
+
+        threading.Thread(target=serve, daemon=True).start()
+        session = Session("127.0.0.1", port)
+        reply = session.send(protocol.identify_message(), wait_reply=True)
+        session.send(protocol.key(24))
+        session.close()
+        time.sleep(0.1)
+
+        self.assertIn("server_features", reply)
+        transcript = "\n".join(seen)
+        self.assertIn("sayHello", transcript)
+        self.assertIn("auth", transcript)
+        self.assertIn("KEYEVENT\r\n24", transcript)
+
+
+class AdvancedProtocolTests(unittest.TestCase):
+    def test_builders(self):
+        self.assertEqual(protocol.airmouse(3, -4, 1), "AIRMOUSEEVNET\r\n3.0\r\n-4.0\r\n1\r\n\r\n")
+        self.assertEqual(protocol.mouse_enable(True), "MOUSEENABLEEVENT\r\n1\r\n\r\n")
+        self.assertEqual(protocol.mouse_enable(False), "MOUSEENABLEEVENT\r\n0\r\n\r\n")
+        self.assertEqual(protocol.airclick(), "AIRCLICKEVENT\r\n1\r\n\r\n")
+        self.assertEqual(protocol.type_text("hi"), "CONTENT\r\n1\r\n0 hi\r\n\r\n")
+        self.assertEqual(protocol.uninstall_app("com.x"), "uninstallApp\r\ncom.x\r\n\r\n")
+        self.assertEqual(protocol.start_browser(), "STARTBROWSEREVENT\r\n1\r\n\r\n")
+
+    def test_type_text_rejects_newlines(self):
+        with self.assertRaises(ValueError):
+            protocol.type_text("a\nb")
+
+    def test_uninstall_validates(self):
+        with self.assertRaises(ValueError):
+            protocol.uninstall_app("")
+        with self.assertRaises(ValueError):
+            protocol.uninstall_app("a\r\nb")
+
+
+class WebDavParseTests(unittest.TestCase):
+    FIXTURE = b"""<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:">
+ <D:response><D:href>/movies/</D:href><D:propstat><D:prop>
+  <D:resourcetype><D:collection/></D:resourcetype><D:displayname>movies</D:displayname>
+ </D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>
+ <D:response><D:href>/movies/clip.mkv</D:href><D:propstat><D:prop>
+  <D:resourcetype/><D:getcontentlength>734003200</D:getcontentlength>
+  <D:getlastmodified>Sun, 15 Nov 2026 10:00:00 GMT</D:getlastmodified>
+  <D:getetag>"abc"</D:getetag><D:displayname>clip.mkv</D:displayname>
+  <D:quota-available-bytes>5000000000</D:quota-available-bytes><D:quota-used-bytes>8000000000</D:quota-used-bytes>
+ </D:prop><D:status>HTTP/1.1 200 OK</D:status></D:propstat></D:response>
+</D:multistatus>"""
+
+    def test_parse_multistatus(self):
+        from tvunboxed import tvdav
+        result = tvdav._parse_multistatus(self.FIXTURE, "/movies/")
+        # the requested root collection itself is filtered out
+        self.assertEqual([e.name for e in result.entries], ["clip.mkv"])
+        self.assertEqual(result.entries[0].size, 734003200)
+        self.assertEqual(result.quota_available, 5000000000)
+        self.assertEqual(result.quota_used, 8000000000)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+class ShareTests(unittest.TestCase):
+    def test_open_file_local(self):
+        from tvunboxed import share
+        msg = share.open_file_message("files/My Vid.mkv")
+        self.assertTrue(msg.startswith("Openfile\r\nOpen files/My%20Vid.mkv "))
+        self.assertIn("matroska", msg)
+
+    def test_open_file_url_passthrough(self):
+        from tvunboxed import share
+        msg = share.open_file_message("https://example.com/x.m3u8")
+        self.assertIn("https://example.com/x.m3u8", msg)
+
+    def test_normalize_relpath_blocks_escape(self):
+        from tvunboxed import share
+        self.assertEqual(share.normalize_relpath("./a//b"), "a/b")
+        with self.assertRaises(ValueError):
+            share.normalize_relpath("../etc/passwd")
+        with self.assertRaises(ValueError):
+            share.normalize_relpath("a/../../b")
+
+    def test_list_share(self):
+        import os, tempfile
+        from tvunboxed import share
+        with tempfile.TemporaryDirectory() as td:
+            os.mkdir(os.path.join(td, "sub"))
+            open(os.path.join(td, "b.txt"), "w").write("x")
+            open(os.path.join(td, "a.txt"), "w").write("x")
+            out = share.list_share(td)
+            self.assertEqual(out["dir"], ".")
+            self.assertEqual([e["name"] for e in out["entries"]], ["sub", "a.txt", "b.txt"])
+            self.assertEqual(share.list_share(td, "sub")["dir"], "sub")
+
+class TvAppsParseTests(unittest.TestCase):
+    def _build_blob(self, records):
+        body = b""
+        for name, pkg, crev, dint, icon in records:
+            body += len(name).to_bytes(4, "big") + name
+            body += len(pkg).to_bytes(4, "big") + pkg
+            body += len(crev).to_bytes(4, "big") + crev
+            body += (4).to_bytes(4, "big")
+            body += dint.to_bytes(4, "big", signed=False)
+            body += len(icon).to_bytes(4, "big") + icon
+        return len(body).to_bytes(4, "big") + body
+
+    def test_parse_two_apps(self):
+        from tvunboxed import tvapps
+        blob = self._build_blob([
+            ("Netflix".encode(), b"com.netflix.ninja", b"", 123, b"\x89PNGfakeicon"),
+            ("Settings".encode(), b"com.android.settings", b"cls", 42, b""),
+        ])
+        apps = tvapps.parse_app_blob(blob)
+        self.assertEqual([a["name"] for a in apps], ["Netflix", "Settings"])
+        self.assertEqual(apps[0]["package"], "com.netflix.ninja")
+        self.assertEqual(apps[0]["d"], 123)
+        self.assertTrue(apps[0]["icon"].startswith("data:image/png;base64,"))
+        self.assertEqual(apps[1]["icon"], "")
+
+    def test_parse_empty_and_garbage(self):
+        from tvunboxed import tvapps
+        self.assertEqual(tvapps.parse_app_blob(b""), [])
+        self.assertEqual(tvapps.parse_app_blob(b"\x00\x00\x00"), [])
+        self.assertEqual(tvapps.parse_app_blob(b"\x00\x00\x00\x10AAAA"), [])
+
+    def test_parse_truncated_record_stops_cleanly(self):
+        from tvunboxed import tvapps
+        blob = self._build_blob([("A".encode(), b"com.a", b"", 1, b"icon")])
+        self.assertEqual(len(tvapps.parse_app_blob(blob)), 1)
+        truncated = blob[:-3]
+        self.assertEqual(tvapps.parse_app_blob(truncated), [])

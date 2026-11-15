@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0f1a">
+<title>TVunboxed — TV Companion</title>
+<script>(function(){try{var s=localStorage.getItem('tvunboxed-theme');var l=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches;document.documentElement.dataset.theme=s||(l?'light':'dark');}catch(e){}})();</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%20%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%230E0F1A%22/%3E%0A%20%20%3Crect%20x%3D%224%22%20y%3D%2212%22%20width%3D%2256%22%20height%3D%2240%22%20fill%3D%22%23D5CDFF%22%20stroke%3D%22%2316182B%22%20stroke-width%3D%223.5%22/%3E%0A%20%20%3Crect%20x%3D%2210%22%20y%3D%2218%22%20width%3D%2244%22%20height%3D%2210%22%20fill%3D%22%2316182B%22/%3E%0A%20%20%3Ctext%20x%3D%2232%22%20y%3D%2225.4%22%20text-anchor%3D%22middle%22%20font-family%3D%22JetBrains%20Mono%2C%20monospace%22%20font-weight%3D%22700%22%20font-size%3D%227%22%20fill%3D%22%23C5E17A%22%3ETV-UNBOXED%3C/text%3E%0A%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2240%22%20r%3D%226%22%20fill%3D%22none%22%20stroke%3D%22%2316182B%22%20stroke-width%3D%223.5%22/%3E%0A%20%20%3Ccircle%20cx%3D%2243%22%20cy%3D%2240%22%20r%3D%226%22%20fill%3D%22none%22%20stroke%3D%22%2316182B%22%20stroke-width%3D%223.5%22/%3E%0A%20%20%3Ccircle%20cx%3D%2221%22%20cy%3D%2240%22%20r%3D%221.5%22%20fill%3D%22%2316182B%22/%3E%0A%20%20%3Ccircle%20cx%3D%2243%22%20cy%3D%2240%22%20r%3D%221.5%22%20fill%3D%22%2316182B%22/%3E%0A%3C/svg%3E%0A">
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" crossorigin href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&family=Poppins:wght@400;500;600;700&display=swap" />
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   TVunboxed · "Mixtape" design system
+   Cassette-forward Y2K. Dark + light. Radius 0 everywhere.
+   Borders are 2px ink. Shadows are flat offsets, never blur.
+   ═══════════════════════════════════════════════════════════ */
+
+:root, html[data-theme="dark"]{
+  --bg:#0e0f1a; --bg-glow-1:rgba(112,193,255,.13); --bg-glow-2:rgba(255,191,217,.10); --bg-glow-3:rgba(197,225,122,.08);
+  --card:#16182b; --muted:#1f2238; --recess:#0b0c16;
+  --line:#2c3048; --bord:#636889;
+  --text:#edeffc; --dim:#a6acd6; --disabled:#4a4f6b;
+  --accent:#d5cdff; --accent-ink:#2a1159;   /* purple shell = primary */
+  --accent2:#cccffa;                        /* periwinkle */
+  --ok:#c5e17a;    --ok-ink:#3f4e00;
+  --info:#addbff;  --info-ink:#003454;
+  --warn:#ffe08a;  --warn-ink:#584400;
+  --danger:#ffc3c3;--danger-ink:#880023;
+  --pink:#ffbfd9;  --pink-ink:#82004f;
+  --cyan:#b2f0ed;
+  --logo-shell:#d5cdff; --logo-ink:#16182b; --logo-label:#c5e17a;
+  --hard:4px 4px 0 rgba(0,0,0,.45); --hard-sm:3px 3px 0 rgba(0,0,0,.45);
+  --shadow-focus:0 0 0 2px #70c1ff55;
+  --font-body:'Poppins',-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-display:'Crimson Text',Georgia,serif;
+  --font-mono:'JetBrains Mono',Monaco,monospace;
+}
+html[data-theme="light"]{
+  --bg:#cccffa; --bg-glow-1:rgba(255,255,255,.55); --bg-glow-2:rgba(255,191,217,.35); --bg-glow-3:rgba(112,193,255,.30);
+  --card:#ffffff; --muted:#f1ece6; --recess:#e9e4da;
+  --line:#dcd3c6; --bord:#2d241b;
+  --text:#2d241b; --dim:#5a5146; --disabled:#b8ad9f;
+  --accent:#2d241b; --accent-ink:#cccffa;   /* charcoal on periwinkle — classic Y2K */
+  --accent2:#2d241b;
+  --ok:#c5e17a;    --ok-ink:#3f4e00;
+  --info:#addbff;  --info-ink:#003454;
+  --warn:#ffe08a;  --warn-ink:#584400;
+  --danger:#ffc3c3;--danger-ink:#880023;
+  --pink:#ffbfd9;  --pink-ink:#82004f;
+  --cyan:#b2f0ed;
+  --logo-shell:#d5cdff; --logo-ink:#16182b; --logo-label:#c5e17a;
+  --hard:4px 4px 0 rgba(45,36,27,.30); --hard-sm:3px 3px 0 rgba(45,36,27,.30);
+  --shadow-focus:0 0 0 2px #00345455;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{overflow-x:hidden;max-width:100%}
+body{
+  background:
+    radial-gradient(900px 500px at 50% -8%, var(--bg-glow-1), transparent 55%),
+    radial-gradient(700px 420px at 85% 110%, var(--bg-glow-2), transparent 60%),
+    radial-gradient(600px 400px at 8% 105%, var(--bg-glow-3), transparent 60%),
+    var(--bg);
+  color:var(--text);min-height:100svh;
+  font-family:var(--font-body);font-size:14.5px;line-height:1.45;
+  padding-bottom:calc(88px + env(safe-area-inset-bottom));
+  transition:background .25s;
+}
+
+/* ── app bar ─────────────────────────────────────────────────────────── */
+.appbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:calc(env(safe-area-inset-top) + 12px) 14px 12px;background:var(--card);border-bottom:1px solid var(--line)}
+.appbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,#cccffa,#ffbfd9,#b2f0ed,#c5e17a,#addbff,#d5cdff,#cccffa);background-size:300% 100%;animation:foil 9s linear infinite}
+@keyframes foil{to{background-position:300% 0}}
+.logo{width:44px;height:44px;flex:0 0 auto;display:block}
+.wordmark{min-width:0}
+.wordmark h1{font-family:var(--font-display);font-style:italic;font-weight:700;font-size:1.45rem;line-height:1;color:var(--text);letter-spacing:.01em;white-space:nowrap}
+.wordmark small{display:block;font-family:var(--font-mono);font-size:.55rem;letter-spacing:.24em;text-transform:uppercase;color:var(--dim);margin-top:4px;white-space:nowrap}
+.chip{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:var(--muted);border:1px solid var(--bord);padding:8px 11px;cursor:pointer;white-space:nowrap}
+.dot{width:9px;height:9px;background:var(--disabled);border-radius:50%}
+.chip.ok .dot{background:var(--ok);box-shadow:0 0 10px rgba(197,225,122,.85)}
+.chip.bad .dot{background:var(--danger);box-shadow:0 0 10px rgba(255,195,195,.85)}
+
+.theme-toggle{all:unset;flex:0 0 auto;width:40px;height:40px;display:grid;place-items:center;cursor:pointer;border:2px solid var(--bord);background:var(--muted);box-shadow:var(--hard-sm)}
+.theme-toggle:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(0,0,0,.4)}
+.theme-toggle svg{width:20px;height:20px;stroke:var(--text);fill:none;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter}
+.sun{display:none}
+html[data-theme="light"] .sun{display:block}
+html[data-theme="light"] .moon{display:none}
+
+main{max-width:520px;margin:0 auto;padding:16px 14px 0;display:grid;gap:16px}
+.tab{display:none}
+.tab.active{display:grid;gap:16px;animation:fade .28s ease}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+
+/* ── cards ───────────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--hard);padding:14px;overflow:hidden}
+.card-title{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:.64rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.card-title svg{width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:square}
+.card-title .hint{margin-left:auto;text-transform:none;letter-spacing:.05em;color:var(--ok);font-weight:500}
+
+/* ── buttons ─────────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-size:.85rem;font-weight:600;color:var(--text);background:var(--muted);border:2px solid var(--bord);padding:13px 10px;cursor:pointer;user-select:none;box-shadow:var(--hard-sm);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 rgba(0,0,0,.4)}
+.btn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square}
+.btn-amber{background:var(--accent);color:var(--accent-ink);border-color:var(--bord)}
+.btn-green{background:var(--ok);color:var(--ok-ink);border-color:var(--bord)}
+.btn-blue{background:var(--info);color:var(--info-ink);border-color:var(--bord)}
+.btn-pink{background:var(--pink);color:var(--pink-ink);border-color:var(--bord)}
+.danger{background:var(--danger);color:var(--danger-ink);border-color:var(--bord)}
+.icon-btn{width:46px;height:46px;padding:0}
+
+.hero-strip{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:10px}
+.vol-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.nav-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.media-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.ch-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.btn-row{display:flex;gap:10px}.btn-row .btn{flex:1}
+
+/* ── segmented toggle (Side A / Side B) ──────────────────────────────── */
+.segmented{display:grid;grid-template-columns:1fr 1fr;background:var(--recess);border:2px solid var(--bord);box-shadow:var(--hard-sm)}
+.seg-btn{all:unset;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 6px;cursor:pointer;color:var(--dim);border-right:2px solid var(--bord);transition:background .18s,color .18s}
+.seg-btn:last-child{border-right:0}
+.seg-btn .reels{display:inline-flex;gap:5px}
+.seg-btn .reels i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;display:block}
+.seg-text{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
+.seg-text b{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase}
+.seg-text i{font-family:var(--font-mono);font-style:normal;font-size:.52rem;letter-spacing:.24em;text-transform:uppercase;opacity:.75}
+.seg-btn.active{background:var(--accent);color:var(--accent-ink)}
+.seg-btn:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
+.seg-panel{display:none}
+.seg-panel.show{display:grid;gap:16px;animation:fade .28s ease}
+
+/* ── d-pad ───────────────────────────────────────────────────────────── */
+.dpad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;padding:4px 0}
+.dpad .btn{height:64px;font-size:0;background:var(--muted)}
+.dpad .btn-ok{background:var(--info);color:var(--info-ink);border-color:var(--bord)}
+.dpad .spacer{visibility:hidden}
+
+/* ── range ───────────────────────────────────────────────────────────── */
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:38px;background:transparent;cursor:pointer;margin:4px 0 2px}
+input[type=range]::-webkit-slider-runnable-track{height:10px;background:linear-gradient(90deg,var(--info) var(--fill,30%), var(--muted) var(--fill,30%));border:1px solid var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:26px;background:var(--accent);border:2px solid var(--bord);box-shadow:var(--hard-sm);margin-top:-10px}
+input[type=range]::-moz-range-track{height:10px;background:var(--muted)}
+input[type=range]::-moz-range-progress{height:10px;background:var(--info)}
+input[type=range]::-moz-range-thumb{width:22px;height:26px;border-radius:0;background:var(--accent);border:2px solid var(--bord)}
+
+/* ── dashboard tiles ──────────────────────────────────────────────────── */
+.hero{display:flex;align-items:center;gap:14px;padding:16px}
+.hero .big-dot{width:64px;height:64px;flex:0 0 auto;background:var(--disabled);border:2px solid var(--bord);display:grid;place-items:center}
+.hero.ok .big-dot{background:var(--ok)}
+.hero.bad .big-dot{background:var(--danger)}
+.hero .big-dot svg{width:32px;height:32px;stroke:var(--accent-ink);stroke-width:2.4;fill:none;stroke-linecap:square}
+.hero h2{font-family:var(--font-display);font-style:italic;font-weight:700;font-size:1.6rem;color:var(--text)}
+.hero p{font-family:var(--font-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:430px){.tiles{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--muted);border:1px solid var(--line);padding:12px 10px;display:grid;gap:4px}
+.tile .t-label{font-family:var(--font-mono);font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.tile .t-value{font-size:1.05rem;font-weight:700}
+.tile .t-sub{font-family:var(--font-mono);font-size:.58rem;color:var(--disabled)}
+.tile.good .t-value{color:var(--ok)} .tile.warn .t-value{color:var(--warn)} .tile.bad .t-value{color:var(--danger)} .tile.info .t-value{color:var(--info-ink)}
+html[data-theme="dark"] .tile.info .t-value{color:var(--info)}
+
+/* ── lists ───────────────────────────────────────────────────────────── */
+.list{display:grid;gap:8px;max-height:46vh;overflow-y:auto;scrollbar-width:thin}
+.row{display:flex;align-items:center;gap:10px;background:var(--muted);border:1px solid var(--line);padding:10px 12px}
+.row:hover{border-color:var(--bord)}
+.row .name{flex:1;min-width:0;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px}
+.row .name svg{flex:0 0 auto;width:17px;height:17px;stroke:var(--info-ink);fill:none;stroke-width:2}
+html[data-theme="dark"] .row .name svg{stroke:var(--info)}
+.row .dir .name{color:var(--accent);cursor:pointer}
+.row .meta{font-family:var(--font-mono);font-size:.64rem;color:var(--dim)}
+.row .actions{display:flex;gap:6px}
+.row button{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.06em;color:var(--accent);background:transparent;border:1px solid var(--bord);padding:7px 9px;cursor:pointer;text-transform:uppercase}
+.row button:active{background:var(--accent);color:var(--accent-ink)}
+.row button.red{color:var(--danger-ink);border-color:var(--danger-ink)}
+html[data-theme="dark"] .row button.red{color:var(--danger)}
+.empty{text-align:center;color:var(--dim);font-family:var(--font-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;padding:20px 0}
+.pathbar{display:flex;gap:8px;margin-bottom:12px}
+.pathbar input{flex:1;min-width:0;background:var(--recess);border:1px solid var(--bord);color:var(--text);padding:11px 12px;font-family:var(--font-mono);font-size:.8rem}
+.pathbar input:focus{outline:none;border-color:var(--info)}
+
+/* ── iptv ────────────────────────────────────────────────────────────── */
+.video-wrap{border:1px solid var(--line);background:#000;margin-bottom:12px}
+.video-wrap video{display:block;width:100%;max-height:42vh}
+.drop{display:block;border:2px dashed var(--bord);padding:24px 14px;text-align:center;color:var(--dim);cursor:pointer}
+.drop strong{color:var(--accent);font-family:var(--font-display);font-style:italic;font-size:1.1rem}
+.drop input{display:none}
+
+/* ── air mouse pad ───────────────────────────────────────────────────── */
+.pad{height:min(56vh,380px);min-height:260px;display:grid;place-items:center;background:var(--muted);border:2px dashed var(--bord);color:var(--dim);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.18em;text-transform:uppercase;touch-action:none;user-select:none}
+
+/* ── apps grid ───────────────────────────────────────────────────────── */
+.app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 8px;max-height:52vh;overflow-y:auto}
+@media(min-width:430px){.app-grid{grid-template-columns:repeat(5,1fr)}}
+.app-tile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;padding:6px 2px}
+.app-tile:active{transform:scale(.92)}
+.app-icon{width:56px;height:56px;border:2px solid var(--bord);background:var(--muted);box-shadow:var(--hard-sm);object-fit:cover;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;font-size:1.15rem;color:var(--accent)}
+.app-name{font-size:.62rem;color:var(--dim);text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── inputs ──────────────────────────────────────────────────────────── */
+.field{display:flex;gap:8px}
+.field input{flex:1;min-width:0;background:var(--card);border:1px solid var(--bord);color:var(--text);padding:12px;font-size:.86rem;font-family:var(--font-body)}
+.field input:focus{outline:none;border-color:var(--info);box-shadow:var(--shadow-focus)}
+.field .btn{flex:0 0 auto}
+.cap{font-family:var(--font-mono);font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim)}
+.status-line{font-family:var(--font-mono);font-size:.68rem;color:var(--dim);min-height:1.1em;margin-top:10px}
+.status-line.ok{color:var(--ok)}.status-line.bad{color:var(--danger)}
+
+/* ── nav ─────────────────────────────────────────────────────────────── */
+.navbar{position:fixed;bottom:0;left:0;right:0;z-index:20;display:grid;grid-auto-flow:column;background:var(--card);border-top:1px solid var(--line);padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:var(--dim);font-family:var(--font-mono);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;padding:5px 6px;cursor:pointer}
+.nav-item svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square}
+.nav-item:active{transform:scale(.94)}
+.nav-item.active{color:var(--accent-ink);background:var(--accent);box-shadow:var(--hard-sm)}
+.nav-item.active svg{stroke:var(--accent-ink)}
+
+/* ── toast ───────────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,8px);opacity:0;z-index:30;background:var(--card);border:2px solid var(--accent);color:var(--text);padding:10px 18px;font-family:var(--font-mono);font-size:.72rem;pointer-events:none;transition:.2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (pointer:coarse){input{font-size:16px !important}}
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <svg class="logo" viewBox="0 0 64 64" role="img" aria-label="TVunboxed"><rect x="4" y="12" width="56" height="40" fill="#D5CDFF" stroke="#16182B" stroke-width="4"/><rect x="10" y="18" width="44" height="10" fill="#16182B"/><text x="32" y="25.5" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-weight="700" font-size="7" fill="#C5E17A">TV-UNBOXED</text><circle cx="21" cy="40" r="6" fill="none" stroke="#16182B" stroke-width="3.5"/><circle cx="43" cy="40" r="6" fill="none" stroke="#16182B" stroke-width="3.5"/><circle cx="21" cy="40" r="1.5" fill="#16182B"/><circle cx="43" cy="40" r="1.5" fill="#16182B"/></svg>
+  <div class="wordmark"><h1>TVunboxed</h1><small>mixtape edition</small></div>
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark/light mode" title="Toggle mode"><svg class="moon" viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9z"/></svg><svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M19.8 4.2l-2.1 2.1M6.3 17.7l-2.1 2.1"/></svg></button>
+  <button class="chip" id="statusChip" title="Re-check TV"><span class="dot"></span><span id="statusText">connecting…</span></button>
+</header>
+
+<main>
+
+  <!-- ════════ TAB: DASHBOARD ════════ -->
+  <section class="tab active" id="tab-dashboard" role="tabpanel">
+    <div class="card hero" id="heroCard">
+      <div class="big-dot"><svg viewBox="0 0 24 24"><path d="M4 8.5A10 10 0 0 1 20 8.5"/><path d="M7.5 12a6.5 6.5 0 0 1 9 0"/><circle cx="12" cy="15.5" r="1.4"/></svg></div>
+      <div><h2 id="heroTitle">TV</h2><p id="heroSub">checking link…</p></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 3"/></svg>Device Health<button class="hint" id="healthRefresh" style="border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+  </section>
+
+  <!-- ════════ TAB: REMOTE ════════ -->
+  <section class="tab" id="tab-remote" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power &amp; Volume</div>
+      <div class="hero-strip">
+        <button class="btn btn-amber" data-key="26" data-long="true"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Hold</button>
+        <button class="btn" data-key="26"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
+        <button class="btn btn-pink" id="muteBtn"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
+      </div>
+      <input id="volLevel" type="range" min="0" max="100" value="30" aria-label="Volume level">
+      <div class="vol-strip">
+        <button class="btn btn-blue" data-key="25"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 12H23"/></svg>Vol −</button>
+        <button class="btn btn-blue" data-key="24"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
+      </div>
+    </div>
+
+    <div class="segmented" role="group" aria-label="Controller mode">
+      <button class="seg-btn active" id="segDpad" aria-pressed="true"><span class="reels"><i></i><i></i></span><span class="seg-text"><b>Side A</b><i>d-pad</i></span></button>
+      <button class="seg-btn" id="segAir" aria-pressed="false"><span class="reels"><i></i><i></i></span><span class="seg-text"><b>Side B</b><i>air mouse</i></span></button>
+    </div>
+
+    <div class="seg-panel show" id="panel-dpad">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>Navigation</div>
+      <div class="dpad">
+        <button class="btn spacer" tabindex="-1"></button>
+        <button class="btn" data-key="19" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+        <button class="btn spacer" tabindex="-1"></button>
+        <button class="btn" data-key="21" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <button class="btn btn-ok" data-key="23" aria-label="OK"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></button>
+        <button class="btn" data-key="22" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        <button class="btn spacer" tabindex="-1"></button>
+        <button class="btn" data-key="20" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+        <button class="btn spacer" tabindex="-1"></button>
+      </div>
+      <div class="nav-strip">
+        <button class="btn" data-key="4"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+        <button class="btn" data-key="3"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</button>
+        <button class="btn" data-key="82"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M6 5l14 7-14 7z"/></svg>Media</div>
+      <div class="media-strip">
+        <button class="btn" data-key="88" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6z"/><path d="M20 6l-7 6 7 6z"/></svg></button>
+        <button class="btn btn-green" data-key="85" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="btn" data-key="90" aria-label="Forward"><svg viewBox="0 0 24 24"><path d="M13 6l7 6-7 6z"/><path d="M4 6l7 6-7 6z"/></svg></button>
+        <button class="btn" data-key="86" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="0"/></svg></button>
+      </div>
+      <div class="ch-strip">
+        <button class="btn" data-key="166"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>CH −</button>
+        <button class="btn" data-key="167"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>CH +</button>
+      </div>
+    </div>
+    </div><!-- /panel-dpad -->
+
+    <div class="seg-panel" id="panel-air">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Air Mouse <span class="hint" id="mouseHint">off</span></div>
+      <div class="field" style="margin-bottom:12px">
+        <button class="btn btn-blue" id="mouseModeBtn" style="flex:1">Enable Pointer</button>
+        <button class="btn" id="airClickBtn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M9 11.5V5a2 2 0 0 1 4 0v6.5l3.5.8a2 2 0 0 1 1.4 2.3L17 19a2 2 0 0 1-2 1.7H11a2 2 0 0 1-1.7-.9L7 16.6a2 2 0 0 1 .4-2.4z"/></svg>Click</button>
+      </div>
+      <div class="pad" id="airPad">drag anywhere — moves the TV pointer</div>
+      <p class="cap" style="margin-top:10px">▸ drag anywhere on the pad · relative deltas · toggle pointer mode first</p>
+    </div>    </div><!-- /panel-air -->
+  </section>
+
+  <!-- ════════ TAB: FILES ════════ -->
+  <section class="tab" id="tab-files" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Phone Share <span class="hint" id="shareHint"></span></div>
+      <div class="pathbar">
+        <button class="btn icon-btn" id="fileUp" aria-label="Up one level"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        <input id="filePath" value="/" spellcheck="false" readonly>
+        <button class="btn icon-btn" id="fileRefresh" aria-label="Refresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5"/></svg></button>
+      </div>
+      <div class="list" id="fileList"><div class="empty">Loading…</div></div>
+      <p class="cap" style="margin-top:12px">▸ “TV ▶” pushes the file to the TV screen</p>
+    </div>
+  </section>
+
+  <!-- ════════ TAB: IPTV ════════ -->
+  <section class="tab" id="tab-tv" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="0"/><rect x="14" y="3" width="7" height="7" rx="0"/><rect x="3" y="14" width="7" height="7" rx="0"/><rect x="14" y="14" width="7" height="7" rx="0"/></svg>Apps on TV <button class="hint" id="appsRefresh" style="all:unset;cursor:pointer;font:inherit">refresh ↻</button></div>
+      <div class="app-grid" id="appGrid"><div class="empty" style="grid-column:1/-1">tap refresh to load</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>IPTV / Live TV</div>
+      <div id="playerWrap" class="video-wrap" style="display:none"><video id="player" controls playsinline></video></div>
+      <label class="drop" id="dropZone"><input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt"><strong>Load Playlist</strong><br><span class="cap" style="letter-spacing:.05em;text-transform:none">your own .m3u · stays on this phone</span></label>
+      <div class="list" id="chanList" style="margin-top:12px"></div>
+      <button class="btn" id="m3uClear" style="margin-top:12px;width:100%">Clear Playlist</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="0"/><path d="M2 10h20"/></svg>TV Storage <span class="hint" id="davHint"></span></div>
+      <div class="pathbar">
+        <button class="btn icon-btn" id="davUp" aria-label="Up one level"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+        <input id="davPath" value="/" spellcheck="false">
+        <button class="btn icon-btn" id="davGo" aria-label="Go"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-green" id="davMkdir"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Folder</button>
+        <label class="btn btn-blue" style="text-align:center;cursor:pointer"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Upload<input id="davUpload" type="file" hidden></label>
+        <button class="btn" id="davRefresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5"/></svg></button>
+      </div>
+      <p class="status-line" id="davQuota"></p>
+      <div class="list" id="davList"><div class="empty">Enter a path &amp; press Go</div></div>
+      <p class="cap" style="margin-top:12px">▸ raw WebDAV on the TV · unauthenticated · trusted Wi‑Fi only</p>
+    </div>
+  </section>
+
+  <!-- ════════ TAB: TOOLS ════════ -->
+  <section class="tab" id="tab-tools" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h12M4 18h8"/></svg>Type on TV</div>
+      <div class="field"><input id="typeText" placeholder="text for focused field…" autocomplete="off" spellcheck="false"><button class="btn btn-amber" id="typeSend">Send</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l4-4a5 5 0 0 0-7-7l-2 2"/><path d="M14 10a5 5 0 0 0-7 0l-4 4a5 5 0 0 0 7 7l2-2"/></svg>Throw to TV</div>
+      <div class="field"><input id="openUrl" placeholder="https://example.com/stream.m3u8" spellcheck="false" autocomplete="off"><button class="btn btn-pink" id="openUrlBtn">Open</button></div>
+      <div class="field" style="margin-top:10px"><input id="pkgLaunch" placeholder="package, e.g. com.example.player" spellcheck="false" autocomplete="off"><button class="btn" id="launchBtn">Launch</button></div>
+      <div class="field" style="margin-top:10px"><input id="switchIdx" inputmode="numeric" value="0" style="max-width:80px" aria-label="Input index"><button class="btn" id="sourceBtn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Switch Input</button></div>
+      <div class="field" style="margin-top:10px"><button class="btn" id="browserBtn" style="flex:1"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>Browser</button>
+        <button class="btn" id="identifyBtn" style="flex:1"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Identify</button>
+      </div>
+      <p class="status-line" id="statusLine"></p>
+    </div>
+
+    <div class="card" style="border-color:#44131b">
+      <div class="card-title" style="color:var(--y2k-red);border-bottom-style:solid"><svg viewBox="0 0 24 24" style="stroke:var(--y2k-red)"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Danger Zone</div>
+      <div class="field"><input id="uninstallPkg" placeholder="package to uninstall" autocomplete="off" spellcheck="false"><button class="btn danger" id="uninstallBtn">Delete</button></div>
+    </div>
+
+    <p class="cap" style="text-align:center;padding:2px 0 8px">TVunboxed · mixtape edition · MIT</p>
+  </section>
+
+</main>
+
+<!-- ════════ bottom nav ════════ -->
+<nav class="navbar" role="tablist">
+  <button class="nav-item active" data-tab="dashboard" role="tab"><svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l4-4"/><circle cx="12" cy="14" r="1.6"/></svg>Home</button>
+  <button class="nav-item" data-tab="files" role="tab"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Files</button>
+  <button class="nav-item" data-tab="remote" role="tab"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><path d="M11 18h2"/></svg>Remote</button>
+  <button class="nav-item" data-tab="tv" role="tab"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>TV</button>
+  <button class="nav-item" data-tab="tools" role="tab"><svg viewBox="0 0 24 24"><path d="M14 7l-6.5 6.5a2 2 0 0 0 2.8 2.8L17 9.5"/><path d="M14 7l3-3 3 3-3 3"/></svg>Tools</button>
+</nav>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const q = s => document.querySelector(s);
+const qa = s => [...document.querySelectorAll(s)];
+const toast = msg => { const el = q('#toast'); el.textContent = msg; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 2200); };
+
+/* ---------- navigation ---------- */
+qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
+  const id = btn.dataset.tab;
+  qa('.nav-item').forEach(b => b.classList.toggle('active', b === btn));
+  qa('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + id));
+  window.scrollTo({top: 0, behavior: 'smooth'});
+  if (id === 'tv') loadApps();
+}));
+
+/* ---------- api ---------- */
+async function call(path, body) {
+  const res = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body ?? {})});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.ok === false) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
+const post = (path, body) => call(path, body).catch(e => toast('Error: ' + e.message));
+
+document.querySelectorAll('[data-key]').forEach(btn =>
+  btn.addEventListener('click', () => post('/api/key', {code: Number(btn.dataset.key), long: btn.dataset.long === 'true'})));
+q('#muteBtn').addEventListener('click', () => post('/api/mute', {}));
+q('#volLevel').addEventListener('input', e => e.target.style.setProperty('--fill', e.target.value + '%'));
+q('#volLevel').addEventListener('change', e => post('/api/volume', {level: Number(e.target.value)}));
+q('#volLevel').style.setProperty('--fill', q('#volLevel').value + '%');
+
+/* ───────── dashboard + status chip ───────── */
+const fmtUptime = s => s == null ? '—' : s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
+const tile = (label, value, sub, cls) => `<div class="tile ${cls||''}"><span class="t-label">${label}</span><span class="t-value">${value}</span>${sub ? `<span class="t-sub">${sub}</span>` : ''}</div>`;
+
+async function refreshStatus() {
+  const chip = q('#statusChip'), label = q('#statusText');
+  chip.classList.remove('ok', 'bad'); label.textContent = 'checking…';
+  const hero = q('#heroCard'), heroTitle = q('#heroTitle'), heroSub = q('#heroSub');
+  let health = null;
+  try { health = await (await fetch('/api/health')).json(); } catch {}
+  const tvUp = !!(health && health.tv.reachable);
+  chip.classList.add(tvUp ? 'ok' : 'bad');
+  label.textContent = tvUp ? 'TV online' : 'TV offline';
+  hero.classList.toggle('ok', tvUp); hero.classList.toggle('bad', !tvUp);
+  heroTitle.textContent = tvUp ? 'TV online' : 'TV offline';
+  heroSub.textContent = tvUp ? (health.tv.features || 'the TV control service') : 'is it powered and on Wi‑Fi?';
+  const model = tvUp && health.tv.features ? ((health.tv.features.match(/m=([^ ]+)/) || [])[1] || '—') : '—';
+  const tiles = [
+    tile('TV link', tvUp ? `${health.tv.latency_ms} ms` : 'down', health ? `${health.tv.host}:${health.tv.port}` : '', tvUp ? 'good' : 'bad'),
+    tile('TV model', model, 'from getFeatures', 'info'),
+    tile('WebDAV', health ? (health.webdav.reachable ? `ok · ${health.webdav.latency_ms} ms` : 'down') : 'down', health ? `port ${health.webdav.port}` : '', health && health.webdav.reachable ? 'good' : 'bad'),
+    tile('Share', health && health.bridge && health.bridge.share ? 'on' : 'off', 'phone → TV files', health && health.bridge && health.bridge.share ? 'info' : ''),
+    tile('Bridge IP', health && health.bridge ? health.bridge.local_ip : '—', 'open on LAN', 'info'),
+    tile('Uptime', health && health.bridge ? fmtUptime(health.bridge.uptime_s) : '—', 'bridge process', ''),
+  ];
+  // phone-side sensors (Chrome/Android only)
+  try {
+    const bat = navigator.getBattery ? await navigator.getBattery() : null;
+    if (bat) {
+      const pct = Math.round(bat.level * 100);
+      tiles.push(tile('Battery', pct + '%', (bat.charging ? 'charging' : 'not charging'), pct > 20 ? 'good' : 'warn'));
+    } else tiles.push(tile('Battery', '—', 'unavailable here', ''));
+  } catch { tiles.push(tile('Battery', '—', 'unavailable', '')); }
+  const conn = navigator.connection || navigator.webkitConnection;
+  tiles.push(tile('Network', conn ? (conn.effectiveType || 'online') : (navigator.onLine ? 'online' : 'offline'),
+                  conn ? `${conn.downlink || '?'} Mb/s · rtt ${conn.rtt || '?'} ms` : '', navigator.onLine ? 'good' : 'bad'));
+  q('#tiles').innerHTML = tiles.join('');
+  if (q('#statusLine')) q('#statusLine').textContent = tvUp ? `TV ${health.tv.host}:${health.tv.port} · latency ${health.tv.latency_ms} ms` : 'TV unreachable';
+}
+q('#statusChip').addEventListener('click', refreshStatus);
+q('#healthRefresh').addEventListener('click', refreshStatus);
+
+/* ───────── file share ───────── */
+let curDir = '';
+const fmtSize = n => n == null ? '' : n >= 1073741824 ? (n/1073741824).toFixed(1)+'G' : n >= 1048576 ? (n/1048576).toFixed(1)+'M' : n >= 1024 ? Math.round(n/1024)+'K' : n+'B';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MAX_ROWS = 120;
+const fileIcon = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg>';
+const dirIcon = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+
+async function openOnTv(path) { try { await call('/api/openfile', {path}); toast('Sent to TV'); } catch (e) { toast('Error: ' + e.message); } }
+
+async function loadFiles(dir) {
+  const list = q('#fileList'); list.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const d = await (await fetch('/api/files?dir=' + encodeURIComponent(dir))).json();
+    if (!d.ok) { list.innerHTML = `<div class="empty">${esc(d.error || 'share unavailable')}</div>`; return; }
+    curDir = d.dir; q('#filePath').value = '/' + d.dir; q('#shareHint').textContent = 'active';
+    list.innerHTML = '';
+    if (!d.entries.length) list.innerHTML = '<div class="empty">Empty folder</div>';
+    let shown = 0;
+    for (const e of d.entries) {
+      if (shown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - shown} more — refine folder`; list.appendChild(more); break; }
+      shown++;
+      const row = document.createElement('div'); row.className = 'row' + (e.type === 'dir' ? ' dir' : '');
+      if (e.type === 'dir') {
+        row.innerHTML = `<span class="name">${dirIcon}${esc(e.name)}</span>`;
+        row.querySelector('.name').addEventListener('click', () => loadFiles(curDir ? curDir + '/' + e.name : e.name));
+      } else {
+        const rel = (curDir ? curDir + '/' : '') + e.name;
+        row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button>TV ▶</button></span>`;
+        row.querySelector('button').addEventListener('click', () => openOnTv(rel));
+      }
+      list.appendChild(row);
+    }
+  } catch { list.innerHTML = '<div class="empty">Share unreachable</div>'; q('#shareHint').textContent = 'unavailable'; }
+}
+q('#fileUp').addEventListener('click', () => loadFiles(curDir.split('/').slice(0, -1).join('/')));
+q('#fileRefresh').addEventListener('click', () => loadFiles(curDir));
+
+/* ───────── IPTV ───────── */
+let channels = [];
+q('#m3uFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const text = await file.text();
+  channels = []; let pending = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.startsWith('#EXTINF')) { const i = line.lastIndexOf(','); pending = i >= 0 ? line.slice(i+1).trim() : 'channel'; }
+    else if (line && !line.startsWith('#')) { channels.push({name: pending || line, url: line}); pending = null; }
+  }
+  renderChannels(); toast(channels.length + ' channels loaded');
+});
+q('#m3uClear').addEventListener('click', () => { channels = []; q('#chanList').innerHTML = ''; q('#m3uFile').value = ''; const p = q('#player'); p.removeAttribute('src'); q('#playerWrap').style.display = 'none'; });
+function renderChannels() {
+  const list = q('#chanList'); list.innerHTML = '';
+  for (const ch of channels) {
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<span class="name"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4"/></svg>${esc(ch.name)}</span><span class="actions"><button>Play</button><button>TV ▶</button></span>`;
+    const [playBtn, tvBtn] = row.querySelectorAll('button');
+    playBtn.addEventListener('click', () => { const v = q('#player'); v.src = ch.url; q('#playerWrap').style.display = 'block'; v.play().catch(() => toast('Browser cannot play this stream')); });
+    tvBtn.addEventListener('click', () => openOnTv(ch.url));
+    list.appendChild(row);
+  }
+}
+
+/* ───────── TV storage (WebDAV) ───────── */
+let davDir = '/';
+async function davLoad(dir) {
+  const list = q('#davList'); list.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const d = await (await fetch('/api/dav/list?dir=' + encodeURIComponent(dir))).json();
+    if (!d.ok) { list.innerHTML = `<div class="empty">${esc(d.error || 'unavailable')}</div>`; q('#davHint').textContent = 'unavailable'; return; }
+    q('#davHint').textContent = 'connected';
+    davDir = d.dir; q('#davPath').value = davDir;
+    q('#davQuota').textContent = (d.quota_used != null && d.quota_available != null) ? `used ${fmtSize(d.quota_used)} · free ${fmtSize(d.quota_available)}` : '';
+    list.innerHTML = '';
+    if (!d.entries.length) list.innerHTML = '<div class="empty">Empty folder</div>';
+    let davShown = 0;
+    for (const e of d.entries) {
+      if (davShown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - davShown} more`; list.appendChild(more); break; }
+      davShown++;
+      const path = (davDir.endsWith('/') ? davDir : davDir + '/') + e.name;
+      const row = document.createElement('div'); row.className = 'row' + (e.dir ? ' dir' : '');
+      if (e.dir) {
+        row.innerHTML = `<span class="name">${dirIcon}${esc(e.name)}</span>`;
+        row.querySelector('.name').addEventListener('click', () => davLoad(path + '/'));
+      } else {
+        row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button data-a="dl">⬇</button><button data-a="mv">✎</button><button data-a="rm" class="red">✕</button></span>`;
+        row.querySelector('[data-a=dl]').addEventListener('click', () => { location.href = '/api/dav/get?path=' + encodeURIComponent(path); });
+        row.querySelector('[data-a=mv]').addEventListener('click', async () => { const name = prompt('Rename to:', e.name); if (!name) return; try { await call('/api/dav/move', {from: path, to: (davDir.endsWith('/') ? davDir : davDir + '/') + name}); davLoad(davDir); } catch (err) { toast('Rename failed: ' + err.message); } });
+        row.querySelector('[data-a=rm]').addEventListener('click', async () => { if (!confirm('Delete ' + e.name + ' from TV?')) return; try { await call('/api/dav/delete', {path}); davLoad(davDir); } catch (err) { toast('Delete failed: ' + err.message); } });
+      }
+      list.appendChild(row);
+    }
+  } catch { list.innerHTML = '<div class="empty">WebDAV unreachable — TV awake?</div>'; q('#davHint').textContent = 'unreachable'; }
+}
+q('#davGo').addEventListener('click', () => davLoad(q('#davPath').value));
+q('#davUp').addEventListener('click', () => { const p = davDir.replace(/\/+$/, '').split('/').slice(0, -1).join('/'); davLoad(p || '/'); });
+q('#davRefresh').addEventListener('click', () => davLoad(davDir));
+q('#davMkdir').addEventListener('click', async () => { const name = prompt('New folder name:'); if (!name) return; try { await call('/api/dav/mkcol', {path: (davDir.endsWith('/') ? davDir : davDir + '/') + name}); davLoad(davDir); } catch (e) { toast('mkdir failed: ' + e.message); } });
+q('#davUpload').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const dest = (davDir.endsWith('/') ? davDir : davDir + '/') + file.name;
+  try {
+    const res = await fetch('/api/dav/put', {method: 'POST', headers: {'X-File-Path': dest.replace(/^\/+/, '')}, body: file});
+    const d = await res.json(); if (!res.ok || d.ok === false) throw new Error(d.error || ('HTTP ' + res.status));
+    toast('Uploaded ' + file.name); davLoad(davDir);
+  } catch (err) { toast('Upload failed: ' + err.message); }
+  e.target.value = '';
+});
+
+/* ───────── air mouse ───────── */
+let mouseEnabled = false, lastPointer = null;
+q('#mouseModeBtn').addEventListener('click', async () => {
+  mouseEnabled = !mouseEnabled;
+  q('#mouseHint').textContent = mouseEnabled ? 'on' : 'off';
+  q('#mouseModeBtn').textContent = mouseEnabled ? 'Disable Pointer' : 'Enable Pointer';
+  try { await call('/api/mouse-mode', {on: mouseEnabled}); } catch (e) { toast('Error: ' + e.message); }
+});
+const airPad = q('#airPad');
+airPad.addEventListener('pointerdown', e => { airPad.setPointerCapture(e.pointerId); lastPointer = {x: e.clientX, y: e.clientY}; });
+airPad.addEventListener('pointermove', e => {
+  if (!lastPointer || !mouseEnabled) return;
+  const dx = e.clientX - lastPointer.x, dy = e.clientY - lastPointer.y;
+  if (Math.abs(dx) + Math.abs(dy) < 4) return;
+  lastPointer = {x: e.clientX, y: e.clientY};
+  call('/api/airmouse', {dx, dy}).catch(() => {});
+});
+const endPtr = () => { lastPointer = null; };
+airPad.addEventListener('pointerup', endPtr); airPad.addEventListener('pointercancel', endPtr); airPad.addEventListener('pointerleave', endPtr);
+
+/* ───────── tools ───────── */
+q('#airClickBtn').addEventListener('click', () => post('/api/airclick', {}));
+q('#typeSend').addEventListener('click', () => post('/api/type', {text: q('#typeText').value}));
+q('#openUrlBtn').addEventListener('click', () => post('/api/open-url', {url: q('#openUrl').value.trim()}));
+q('#browserBtn').addEventListener('click', () => post('/api/browser', {}));
+q('#launchBtn').addEventListener('click', () => post('/api/app', {package: q('#pkgLaunch').value.trim()}));
+q('#sourceBtn').addEventListener('click', () => post('/api/source', {index: Number(q('#switchIdx').value || 0)}));
+q('#identifyBtn').addEventListener('click', async () => { try { const d = await (await fetch('/api/features')).json(); q('#statusLine').textContent = d.features || '(empty reply)'; } catch { q('#statusLine').textContent = 'unreachable'; } });
+q('#uninstallBtn').addEventListener('click', async () => {
+  const pkg = q('#uninstallPkg').value.trim(); if (!pkg) return;
+  if (!confirm('Uninstall ' + pkg + ' from the TV?')) return;
+  const word = prompt('Type "uninstall" to confirm:');
+  try { await call('/api/uninstall', {package: pkg, confirm: word}); toast('Uninstall sent'); } catch (e) { toast('Error: ' + e.message); }
+});
+
+/* ───────── apps on TV ───────── */
+async function loadApps() {
+  const grid = q('#appGrid');
+  grid.innerHTML = '<div class="empty" style="grid-column:1/-1">loading…</div>';
+  try {
+    const d = await (await fetch('/api/tvapps')).json();
+    if (!d.ok) { grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(d.error || 'unavailable')}</div>`; return; }
+    if (!d.apps.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">no apps reported</div>'; return; }
+    grid.innerHTML = '';
+    for (const app of d.apps) {
+      const tile = document.createElement('button');
+      tile.className = 'app-tile';
+      const initials = (app.name || '?').trim().slice(0, 1).toUpperCase();
+      tile.innerHTML = app.icon
+        ? `<img class="app-icon" src="${app.icon}" alt="">`
+        : `<span class="app-icon">${esc(initials)}</span>`;
+      tile.innerHTML += `<span class="app-name">${esc(app.name || app.package)}</span>`;
+      tile.addEventListener('click', async () => {
+        try { await call('/api/app', {package: app.package}); toast('Launching ' + (app.name || app.package)); }
+        catch (e) { toast('Error: ' + e.message); }
+      });
+      grid.appendChild(tile);
+    }
+  } catch { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">unreachable</div>'; }
+}
+q('#appsRefresh').addEventListener('click', loadApps);
+
+/* ───────── segmented toggle ───────── */
+const seg = { dpad: q('#segDpad'), air: q('#segAir'), panelDpad: q('#panel-dpad'), panelAir: q('#panel-air') };
+function showPanel(which) {
+  seg.dpad.classList.toggle('active', which === 'dpad');
+  seg.air.classList.toggle('active', which === 'air');
+  seg.dpad.setAttribute('aria-pressed', which === 'dpad');
+  seg.air.setAttribute('aria-pressed', which === 'air');
+  seg.panelDpad.classList.toggle('show', which === 'dpad');
+  seg.panelAir.classList.toggle('show', which === 'air');
+}
+seg.dpad.addEventListener('click', () => showPanel('dpad'));
+seg.air.addEventListener('click', () => showPanel('air'));
+
+/* ───────── theme toggle ───────── */
+q('#themeToggle').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('tvunboxed-theme', next); } catch (e) {}
+});
+
+/* ───────── boot ───────── */
+refreshStatus();
+loadFiles('');
+setInterval(refreshStatus, 20000);
+</script>
+</body>
+</html>

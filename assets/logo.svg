@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" fill="#0E0F1A"/>
+  <rect x="4" y="12" width="56" height="40" fill="#D5CDFF" stroke="#16182B" stroke-width="3.5"/>
+  <rect x="10" y="18" width="44" height="10" fill="#16182B"/>
+  <text x="32" y="25.4" text-anchor="middle" font-family="JetBrains Mono, monospace" font-weight="700" font-size="7" fill="#C5E17A">TV-UNBOXED</text>
+  <circle cx="21" cy="40" r="6" fill="none" stroke="#16182B" stroke-width="3.5"/>
+  <circle cx="43" cy="40" r="6" fill="none" stroke="#16182B" stroke-width="3.5"/>
+  <circle cx="21" cy="40" r="1.5" fill="#16182B"/>
+  <circle cx="43" cy="40" r="1.5" fill="#16182B"/>
+</svg>
