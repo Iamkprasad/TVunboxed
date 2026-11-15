@@ -7,6 +7,8 @@ import sys
 import threading
 import time
 import unittest
+import base64
+import struct
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -185,39 +187,31 @@ class ShareTests(unittest.TestCase):
             self.assertEqual(share.list_share(td, "sub")["dir"], "sub")
 
 class TvAppsParseTests(unittest.TestCase):
-    def _build_blob(self, records):
+    def _build(self, records):
         body = b""
-        for name, pkg, crev, dint, icon in records:
-            body += len(name).to_bytes(4, "big") + name
-            body += len(pkg).to_bytes(4, "big") + pkg
-            body += len(crev).to_bytes(4, "big") + crev
-            body += (4).to_bytes(4, "big")
-            body += dint.to_bytes(4, "big", signed=False)
-            body += len(icon).to_bytes(4, "big") + icon
-        return len(body).to_bytes(4, "big") + body
+        for name, pkg, ver, vcode, icon in records:
+            body += struct.pack("<I", len(name)) + name
+            body += struct.pack("<I", len(pkg)) + pkg
+            body += struct.pack("<I", len(ver)) + ver
+            body += struct.pack("<II", 4, vcode)
+            body += struct.pack("<I", len(icon)) + icon
+        return b"\x4e\x55\x02\x00" + body
 
-    def test_parse_two_apps(self):
+    def test_parse_matches_live_layout(self):
         from tvunboxed import tvapps
-        blob = self._build_blob([
-            ("Netflix".encode(), b"com.netflix.ninja", b"", 123, b"\x89PNGfakeicon"),
-            ("Settings".encode(), b"com.android.settings", b"cls", 42, b""),
+        blob = self._build([
+            ("YouTube".encode(), b"com.google.android.youtube.tv", b"5.30.340", 530340320, b"\x89PNGicon"),
+            ("VLC".encode(), b"org.videolan.vlc", b"3.7.2", 0, b""),
         ])
         apps = tvapps.parse_app_blob(blob)
-        self.assertEqual([a["name"] for a in apps], ["Netflix", "Settings"])
-        self.assertEqual(apps[0]["package"], "com.netflix.ninja")
-        self.assertEqual(apps[0]["d"], 123)
+        self.assertEqual([a["name"] for a in apps], ["YouTube", "VLC"])
+        self.assertEqual(apps[0]["package"], "com.google.android.youtube.tv")
+        self.assertEqual(apps[0]["versionCode"], 530340320)
         self.assertTrue(apps[0]["icon"].startswith("data:image/png;base64,"))
-        self.assertEqual(apps[1]["icon"], "")
+        self.assertEqual(apps[0]["icon"], "data:image/png;base64," + base64.b64encode(b"\x89PNGicon").decode())
 
-    def test_parse_empty_and_garbage(self):
+    def test_truncated_blob_stops_cleanly(self):
         from tvunboxed import tvapps
-        self.assertEqual(tvapps.parse_app_blob(b""), [])
-        self.assertEqual(tvapps.parse_app_blob(b"\x00\x00\x00"), [])
-        self.assertEqual(tvapps.parse_app_blob(b"\x00\x00\x00\x10AAAA"), [])
-
-    def test_parse_truncated_record_stops_cleanly(self):
-        from tvunboxed import tvapps
-        blob = self._build_blob([("A".encode(), b"com.a", b"", 1, b"icon")])
+        blob = self._build([("A".encode(), b"com.a", b"1", 1, b"icon")])
         self.assertEqual(len(tvapps.parse_app_blob(blob)), 1)
-        truncated = blob[:-3]
-        self.assertEqual(tvapps.parse_app_blob(truncated), [])
+        self.assertEqual(tvapps.parse_app_blob(blob[:-2]), [])

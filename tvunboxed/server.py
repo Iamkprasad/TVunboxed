@@ -68,6 +68,12 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._cmd_dav_get()
         if route.startswith("/files/"):
             return self._serve_shared(route[len("/files/"):])
+        for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
+                       "/storage/emulated/0/Download/",
+                       "sdcard/Download/", "mnt/sdcard/Download/",
+                       "storage/emulated/0/Download/"):
+            if route.startswith(prefix):
+                return self._serve_shared(route[len(prefix):])
         return self._serve_static(route)
 
     # -- writes ----------------------------------------------------------------
@@ -270,11 +276,22 @@ class RemoteHandler(BaseHTTPRequestHandler):
         target = str(body.get("path", "")).strip()
         if not target:
             raise ValueError("missing path")
-        if target.startswith(("http://", "https://")):
+        if target.startswith(("http://", "https://")) or target.startswith("/"):
+            # absolute path: TV-side location (after a DAV upload) — pass through
             self.server.session.send(open_file_message(target))
             return
         if self.server.share is None:
             raise ValueError("file share not enabled (start with --share DIR)")
+        # accept absolute Android paths under known download roots, map into share
+        for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
+                       "/storage/emulated/0/Download/",
+                       "sdcard/Download/", "mnt/sdcard/Download/",
+                       "storage/emulated/0/Download/",
+                       "/sdcard/", "/mnt/sdcard/", "/storage/emulated/0/",
+                       "sdcard/", "mnt/sdcard/", "storage/emulated/0/"):
+            if target.startswith(prefix):
+                target = target[len(prefix):]
+                break
         rel = normalize_relpath(target)
         dest = self._share_path(rel)
         if not dest or not os.path.isfile(dest):
@@ -309,7 +326,17 @@ class RemoteHandler(BaseHTTPRequestHandler):
     def _serve_shared(self, relpath):
         if self.server.share is None:
             return self._send_json({"ok": False, "error": "share disabled"}, 404)
-        target = self._share_path(relpath)
+        norm = relpath.strip()
+        for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
+                       "/storage/emulated/0/Download/",
+                       "sdcard/Download/", "mnt/sdcard/Download/",
+                       "storage/emulated/0/Download/",
+                       "/sdcard/", "/mnt/sdcard/", "/storage/emulated/0/",
+                       "sdcard/", "mnt/sdcard/", "storage/emulated/0/"):
+            if norm.startswith(prefix):
+                norm = norm[len(prefix):]
+                break
+        target = self._share_path(norm)
         if not target or not os.path.isfile(target):
             return self._send_json({"ok": False, "error": "not found"}, 404)
         return self._send_file(target)
@@ -356,7 +383,8 @@ class RemoteHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, fmt, *args):
-        pass  # quiet on purpose; enable for debugging if needed
+        import sys
+        sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
 
 def run(session_host, tv_port=protocol.CONTROL_PORT_DEFAULT, bind="127.0.0.1",
