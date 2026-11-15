@@ -245,7 +245,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div><h2 id="heroTitle">TV</h2><p id="heroSub">checking link…</p></div>
     </div>
     <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 3"/></svg>Device &amp; TV Status<button class="hint" id="healthRefresh" style="border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></div>
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 3"/></svg>Device &amp; TV Status<span style="margin-left:auto;display:flex;gap:10px"><button class="hint" id="liveToggle" style="border:0;background:none;cursor:pointer;font:inherit">live: off</button><button class="hint" id="healthRefresh" style="border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></span></div>
       <div class="tiles" id="tiles"></div>
       <p class="cap" style="margin-top:10px">▸ reads info from the TV (read-only) and this device · refreshing may contact the TV’s control service</p>
     </div>
@@ -448,29 +448,38 @@ const tile = (label, value, sub, cls) => `<div class="tile ${cls||''}"><span cla
 const safeJson = async url => { try { const r = await fetch(url); return await r.json(); } catch { return null; } };
 const pick = (body, key) => { const m = String(body || '').match(new RegExp(key + "['\"]?\\s*:\\s*['\"]?([^,'\"}\\n]+)", 'i')); return m ? m[1].trim() : null; };
 
-async function refreshStatus() {
+let liveTimer = null;
+async function refreshStatus(opts = {}) {
+  const safe = !!opts.safe;
   const chip = q('#statusChip'), label = q('#statusText');
   chip.classList.remove('ok', 'bad'); label.textContent = 'checking…';
   const hero = q('#heroCard'), heroTitle = q('#heroTitle'), heroSub = q('#heroSub');
-  const [health, tvVol, tvWifi, tvMedia, tvPos, tvAppsHttp] = await Promise.all([
-    safeJson('/api/health'), safeJson('/api/tv/info/volume'), safeJson('/api/tv/info/wifi'),
+  const [health, status, tvVol, tvWifi, tvMedia, tvPos, tvAppsHttp] = await Promise.all([
+    safe ? Promise.resolve(null) : safeJson('/api/health'),
+    safe ? safeJson('/api/status') : Promise.resolve(null),
+    safeJson('/api/tv/info/volume'), safeJson('/api/tv/info/wifi'),
     safeJson('/api/tv/info/media'), safeJson('/api/tv/info/position'), safeJson('/api/tv/info/apps')
   ]);
-  const tvUp = !!(health && health.tv && health.tv.reachable);
+  const tvHttpUp = !!(tvVol && tvVol.ok);
+  const tvUp = health ? !!(health.tv && health.tv.reachable) : tvHttpUp;
+  const tvHostPort = health && health.tv ? `${health.tv.host}:${health.tv.port}` : (status && status.tv ? status.tv : 'TV');
   chip.classList.add(tvUp ? 'ok' : 'bad');
   label.textContent = tvUp ? 'TV online' : 'TV offline';
   hero.classList.toggle('ok', tvUp); hero.classList.toggle('bad', !tvUp);
   heroTitle.textContent = tvUp ? 'TV online' : 'TV offline';
-  heroSub.textContent = tvUp ? (health.tv.features || 'the TV control service') : 'is it powered and on Wi‑Fi?';
-  const model = tvUp && health.tv.features ? ((health.tv.features.match(/m=([^ ]+)/) || [])[1] || '—') : '—';
-  const tiles = [
-    tile('TV link', tvUp ? `${health.tv.latency_ms} ms` : 'down', health ? `${health.tv.host}:${health.tv.port}` : '', tvUp ? 'good' : 'bad'),
-    tile('TV model', model, 'from getFeatures', 'info'),
-    tile('WebDAV', health ? (health.webdav && health.webdav.reachable ? `ok · ${health.webdav.latency_ms} ms` : 'down') : 'down', health && health.webdav ? `port ${health.webdav.port}` : '', health && health.webdav && health.webdav.reachable ? 'good' : 'bad'),
-    tile('Share', health && health.bridge && health.bridge.share ? 'on' : 'off', 'phone → TV files', health && health.bridge && health.bridge.share ? 'info' : ''),
-    tile('Bridge IP', health && health.bridge ? health.bridge.local_ip : '—', 'open on LAN', 'info'),
-    tile('Uptime', health && health.bridge ? fmtUptime(health.bridge.uptime_s) : '—', 'bridge process', ''),
-  ];
+  heroSub.textContent = tvUp ? ((health && health.tv && health.tv.features) || 'TV reachable') : 'is it powered and on Wi‑Fi?';
+  const model = health && health.tv && health.tv.features ? ((health.tv.features.match(/m=([^ ]+)/) || [])[1] || '—') : '—';
+  const tiles = [];
+  tiles.push(tile('TV link', health && health.tv && tvUp ? `${health.tv.latency_ms} ms` : (tvUp ? 'reachable' : 'down'), tvHostPort, tvUp ? 'good' : 'bad'));
+  if (!safe || (health && health.tv && health.tv.features)) tiles.push(tile('TV model', model, safe ? 'refresh for details' : 'from getFeatures', 'info'));
+  if (health && health.webdav) tiles.push(tile('WebDAV', health.webdav.reachable ? `ok · ${health.webdav.latency_ms} ms` : 'down', `port ${health.webdav.port}`, health.webdav.reachable ? 'good' : 'bad'));
+  if (health && health.bridge) {
+    tiles.push(tile('Share', health.bridge.share ? 'on' : 'off', 'phone → TV files', health.bridge.share ? 'info' : ''));
+    tiles.push(tile('Bridge IP', health.bridge.local_ip || '—', 'open on LAN', 'info'));
+    tiles.push(tile('Uptime', fmtUptime(health.bridge.uptime_s), 'bridge process', ''));
+  } else if (status) {
+    tiles.push(tile('Share', status.share ? 'on' : 'off', 'phone → TV files', status.share ? 'info' : ''));
+  }
   // TV info (read-only HTTP, safe)
   if (tvVol && tvVol.ok) {
     const b = tvVol.body || '';
@@ -479,9 +488,9 @@ async function refreshStatus() {
   }
   if (tvWifi && tvWifi.ok) {
     const b = tvWifi.body || '';
-    const ssid = pick(b, 'wifiName') || '—';
+    const ssid = (pick(b, 'wifiName') || '—').replace(/^"+|"+$/g, '');
     const speed = pick(b, 'speed');
-    tiles.push(tile('TV Wi‑Fi', ssid.replace(/^"+|"+$/g, ''), speed ? speed : 'from TV', 'info'));
+    tiles.push(tile('TV Wi‑Fi', ssid, speed ? speed : 'from TV', 'info'));
   }
   const appsCount = (tvAppsHttp && tvAppsHttp.ok && Array.isArray(tvAppsHttp.data)) ? tvAppsHttp.data.length : null;
   if (appsCount != null) tiles.push(tile('TV apps', String(appsCount), 'installed (HTTP list)', 'info'));
@@ -506,10 +515,16 @@ async function refreshStatus() {
   tiles.push(tile('Network', conn ? (conn.effectiveType || 'online') : (navigator.onLine ? 'online' : 'offline'),
                   conn ? `${conn.downlink || '?'} Mb/s · rtt ${conn.rtt || '?'} ms` : '', navigator.onLine ? 'good' : 'bad'));
   q('#tiles').innerHTML = tiles.join('');
-  if (q('#statusLine')) q('#statusLine').textContent = tvUp ? `TV ${health.tv.host}:${health.tv.port} · latency ${health.tv.latency_ms} ms` : 'TV unreachable';
+  if (q('#statusLine')) q('#statusLine').textContent = tvUp ? `${tvHostPort}${health && health.tv && health.tv.latency_ms != null ? ' · latency ' + health.tv.latency_ms + ' ms' : ' · live (read-only)'}` : 'TV unreachable';
 }
-q('#statusChip').addEventListener('click', refreshStatus);
-q('#healthRefresh').addEventListener('click', refreshStatus);
+q('#statusChip').addEventListener('click', () => refreshStatus());
+q('#healthRefresh').addEventListener('click', () => refreshStatus());
+q('#liveToggle').addEventListener('click', () => {
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; q('#liveToggle').textContent = 'live: off'; toast('Live updates off'); return; }
+  q('#liveToggle').textContent = 'live: on'; toast('Live updates on (read-only)');
+  refreshStatus({safe: true});
+  liveTimer = setInterval(() => refreshStatus({safe: true}), 10000);
+});
 
 /* ───────── file share ───────── */
 let curDir = '';
