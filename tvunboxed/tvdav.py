@@ -2,7 +2,7 @@
 
 The firmware serves a subset of WebDAV without authentication. Everything
 here uses the standard library only; callers get parsed device entries, not
-raw XML. Live verification is pending (TV was powered off) — see NOTES.md.
+raw XML. Live verification is pending (TV was powered off).
 """
 
 import http.client

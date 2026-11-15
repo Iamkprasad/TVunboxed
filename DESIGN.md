@@ -72,4 +72,4 @@ Short, loud, literal. Name the fix: "TV offline — is it powered and on Wi‑Fi
 
 ## File map
 
-`web/index.html` (markup+CSS+JS, single file) · `assets/logo.svg` · `DESIGN.md` · `README.md` · `NOTES.md` (session log) · `METHODOLOGY.md`
+`web/index.html` (markup+CSS+JS, single file) · `assets/logo.svg` · `DESIGN.md` · `README.md`· `METHODOLOGY.md`
