@@ -3,6 +3,9 @@ TCP control channel. Standard library only."""
 
 import json
 import os
+import urllib.error
+import urllib.parse
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import protocol
@@ -66,6 +69,16 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._cmd_tvapps()
         if route == "/api/dav/get":
             return self._cmd_dav_get()
+        if route == "/api/tv/info/volume":
+            return self._cmd_tv_http("get_volume", "/remote/get_volume")
+        if route == "/api/tv/info/media":
+            return self._cmd_tv_http("get_media_info", "/remote/get_media_info")
+        if route == "/api/tv/info/position":
+            return self._cmd_tv_http("get_position_info", "/remote/get_position_info")
+        if route == "/api/tv/info/wifi":
+            return self._cmd_tv_http("get_wifi_info", "/remote/get_wifi_info")
+        if route == "/api/tv/info/apps":
+            return self._cmd_tv_http("getinstallapks", "/apkmanager/getinstallapks", json_body=True)
         if route.startswith("/files/"):
             return self._serve_shared(route[len("/files/"):])
         for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
@@ -156,6 +169,25 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._send_json({"ok": False, "error": f"tv app list unavailable: {exc}"}, 502)
         self.server.tvapps_cache = {"at": _time.monotonic(), "apps": apps}
         return self._send_json({"ok": True, "apps": apps, "cached": False})
+
+    def _cmd_tv_http(self, action, path, json_body=False):
+        """Read-only proxy for the TV's built-in HTTP endpoints (no TV UI impact)."""
+        host = self.server.tvdav.host
+        port = self.server.tvdav.port
+        url = f"http://{host}:{port}{path}"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "TVunboxed"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                raw = resp.read().decode("utf-8", errors="replace")
+        except (urllib.error.URLError, OSError, TimeoutError, ValueError) as exc:
+            return self._send_json({"ok": False, "action": action, "error": str(exc)}, 502)
+        out = {"ok": True, "action": action, "body": raw}
+        if json_body:
+            try:
+                out["data"] = json.loads(raw) if raw.strip() else None
+            except json.JSONDecodeError:
+                out["data"] = None
+        return self._send_json(out)
 
     def _dav(self):
         return self.server.tvdav

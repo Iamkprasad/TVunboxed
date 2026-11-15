@@ -115,6 +115,9 @@ class AdvancedProtocolTests(unittest.TestCase):
         self.assertEqual(protocol.type_text("hi"), "CONTENT\r\n1\r\n0 hi\r\n\r\n")
         self.assertEqual(protocol.uninstall_app("com.x"), "uninstallApp\r\ncom.x\r\n\r\n")
         self.assertEqual(protocol.start_browser(), "STARTBROWSEREVENT\r\n1\r\n\r\n")
+        self.assertEqual(protocol.open_link("https://example.com"), "OpenLink\r\nhttps://example.com\r\n\r\n")
+        self.assertEqual(protocol.media_control("getCurrentPosition"), "MediaControl\r\ngetCurrentPosition\r\n\r\n")
+        self.assertEqual(protocol.media_control("setVolume 30"), "MediaControl\r\nsetVolume 30\r\n\r\n")
 
     def test_type_text_rejects_newlines(self):
         with self.assertRaises(ValueError):
@@ -125,6 +128,16 @@ class AdvancedProtocolTests(unittest.TestCase):
             protocol.uninstall_app("")
         with self.assertRaises(ValueError):
             protocol.uninstall_app("a\r\nb")
+
+    def test_open_link_and_media_validate(self):
+        with self.assertRaises(ValueError):
+            protocol.open_link("")
+        with self.assertRaises(ValueError):
+            protocol.open_link("a\nb")
+        with self.assertRaises(ValueError):
+            protocol.media_control("")
+        with self.assertRaises(ValueError):
+            protocol.media_control("bad\r\nx")
 
 
 class WebDavParseTests(unittest.TestCase):

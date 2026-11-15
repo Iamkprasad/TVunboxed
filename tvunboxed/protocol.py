@@ -124,6 +124,22 @@ def start_browser() -> str:
     return "STARTBROWSEREVENT\r\n1\r\n\r\n"
 
 
+def open_link(url: str) -> str:
+    """Ask the TV to open a link/URL (as sent by the client)."""
+    url = str(url).strip()
+    if not url or "\r" in url or "\n" in url:
+        raise ValueError("bad url")
+    return _record(f"OpenLink\r\n{url}")
+
+
+def media_control(command: str) -> str:
+    """Raw media-control command line, e.g. 'setVolume 30', 'getCurrentPosition'."""
+    command = str(command).strip()
+    if not command or "\r" in command or "\n" in command:
+        raise ValueError("bad media command")
+    return _record(f"MediaControl\r\n{command}")
+
+
 def launch(package: str) -> str:
     package = str(package).strip()
     if not package or "\r" in package or "\n" in package:
