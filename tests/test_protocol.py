@@ -166,6 +166,11 @@ class ShareTests(unittest.TestCase):
         msg = share.open_file_message("https://example.com/x.m3u8")
         self.assertIn("https://example.com/x.m3u8", msg)
 
+    def test_save_file(self):
+        from tvunboxed import share
+        msg = share.save_file_message("files/My Pic.png")
+        self.assertEqual(msg, "Savefile\r\nSave files/My%20Pic.png image/png\r\n\r\n")
+
     def test_normalize_relpath_blocks_escape(self):
         from tvunboxed import share
         self.assertEqual(share.normalize_relpath("./a//b"), "a/b")

@@ -486,6 +486,7 @@ const fileIcon = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a2 2 0 0 1-2 2H
 const dirIcon = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
 async function openOnTv(path) { try { await call('/api/openfile', {path}); toast('Sent to TV'); } catch (e) { toast('Error: ' + e.message); } }
+async function pushToTv(path) { try { await call('/api/savefile', {path}); toast('Copying to TV…'); } catch (e) { toast('Error: ' + e.message); } }
 
 async function loadFiles(dir) {
   const list = q('#fileList'); list.innerHTML = '<div class="empty">Loading…</div>';
@@ -505,8 +506,9 @@ async function loadFiles(dir) {
         row.querySelector('.name').addEventListener('click', () => loadFiles(curDir ? curDir + '/' + e.name : e.name));
       } else {
         const rel = (curDir ? curDir + '/' : '') + e.name;
-        row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button>TV ▶</button></span>`;
-        row.querySelector('button').addEventListener('click', () => openOnTv(rel));
+        row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button data-act="open" title="Open on TV">TV ▶</button><button data-act="push" title="Copy into the TV Upload folder">TV ⤒</button></span>`;
+        row.querySelectorAll('button').forEach(b => b.addEventListener('click',
+          () => b.dataset.act === 'push' ? pushToTv(rel) : openOnTv(rel)));
       }
       list.appendChild(row);
     }

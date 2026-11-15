@@ -25,7 +25,7 @@ class Session:
         sock = socket.create_connection((self.host, self.port), timeout=4)
         sock.settimeout(3)
         sock.sendall(protocol.probe_message().encode())
-        sock.sendall(protocol.handshake_message("/mnt/sdcard", self.http_port, "onelong").encode())
+        sock.sendall(protocol.handshake_message("/storage/emulated/0", self.http_port, "onelong").encode())
         self._sock = sock
 
     def close(self):

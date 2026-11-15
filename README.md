@@ -16,10 +16,11 @@ Built and verified on a partner smart-TV (Android 8.0, firmware with the built-i
 | **Air mouse** | Drag pad + click; the TV enters pointer mode | ⚠️ built, unverified on hardware |
 | **IPTV** | Load your own `.m3u`/`.m3u8`, play on the phone or push the stream to the TV | ⚠️ built, unverified on hardware |
 | **Apps** | Reads the TV's installed-app list (binary protocol over a dedicated socket); tap to launch | ⚠️ parsing unit-tested, unverified on hardware |
-| **Files (phone → TV)** | Browse this phone's share folder; "TV ▶" opens/plays the file on screen | ✅ verified live (protocol-level) |
+| **Files (phone → TV)** | Browse this phone's share folder; "TV ▶" opens on the TV, "TV ⤒" copies into the TV's Upload folder | ✅ verified live (when TV is awake, correct auth/share path) |
 | **TV file manager** | Browse the TV's own storage: upload, download (302 direct), rename, delete, mkdir, quota | ⚠️ request format recovered, unverified on hardware |
 | **Dashboard** | TV link latency, model from features, WebDAV reachability, phone battery, phone network, bridge IP/uptime | ✅ renders; TV values real when TV awake |
 | **Type on TV** | Push text into the TV's focused field | ⚠️ unverified |
+| **Install APK on TV** | Server-side download/install trigger exists in protocol; not exposed/tested | ⚠️ not tested (can interrupt TV) |
 | **Uninstall TV apps** | Destructive; double-confirmed | ⚠️ unverified |
 | Screen mirroring | **Impossible by design** (browser/phone can't push frames to this firmware) | not supported |
 | App-store installs from a catalog | Intentionally not reproduced | not supported |

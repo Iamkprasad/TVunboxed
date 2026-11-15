@@ -23,6 +23,14 @@ def open_file_message(target: str, mime: str | None = None) -> str:
     return f"Openfile\r\nOpen {encode_path(target)} {mime}\r\n\r\n"
 
 
+def save_file_message(target: str, mime: str | None = None) -> str:
+    """'Savefile' makes the TV download /<target> from our bridge and store it
+    under its own Upload folder (copy, not open)."""
+    if mime is None:
+        mime = mimetypes.guess_type(target)[0] or "application/octet-stream"
+    return f"Savefile\r\nSave {encode_path(target)} {mime}\r\n\r\n"
+
+
 def normalize_relpath(relpath: str) -> str:
     """Return a clean relative path, or raise ValueError on escape attempts."""
     relpath = unquote(str(relpath)).replace("\\", "/").strip("/")

@@ -8,7 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from . import protocol
 from .client import Session
 from .discovery import scan
-from .share import list_share, normalize_relpath, open_file_message
+from .share import list_share, normalize_relpath, open_file_message, save_file_message
 from .tvdav import WebDavClient
 from .tvapps import fetch_app_list
 
@@ -93,6 +93,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
             "/api/source": self._cmd_source,
             "/api/app": self._cmd_app,
             "/api/openfile": self._cmd_openfile,
+            "/api/savefile": self._cmd_savefile,
             "/api/open-url": self._cmd_open_url,
             "/api/browser": self._cmd_browser,
             "/api/airmouse": self._cmd_airmouse,
@@ -272,14 +273,11 @@ class RemoteHandler(BaseHTTPRequestHandler):
     def _cmd_app(self, body):
         self.server.session.send(protocol.launch(body["package"]))
 
-    def _cmd_openfile(self, body):
+    def _share_target(self, body):
+        """Resolve a request path to a file inside the share root."""
         target = str(body.get("path", "")).strip()
         if not target:
             raise ValueError("missing path")
-        if target.startswith(("http://", "https://")) or target.startswith("/"):
-            # absolute path: TV-side location (after a DAV upload) — pass through
-            self.server.session.send(open_file_message(target))
-            return
         if self.server.share is None:
             raise ValueError("file share not enabled (start with --share DIR)")
         # accept absolute Android paths under known download roots, map into share
@@ -296,7 +294,18 @@ class RemoteHandler(BaseHTTPRequestHandler):
         dest = self._share_path(rel)
         if not dest or not os.path.isfile(dest):
             raise ValueError("no such file in share")
-        self.server.session.send(open_file_message("files/" + rel))
+        return "files/" + rel
+
+    def _cmd_openfile(self, body):
+        target = str(body.get("path", "")).strip()
+        if target.startswith(("http://", "https://")) or target.startswith("/"):
+            # absolute path: TV-side location (after a DAV upload) — pass through
+            self.server.session.send(open_file_message(target))
+            return
+        self.server.session.send(open_file_message(self._share_target(body)))
+
+    def _cmd_savefile(self, body):
+        self.server.session.send(save_file_message(self._share_target(body)))
 
     def _cmd_list_files(self):
         if self.server.share is None:
