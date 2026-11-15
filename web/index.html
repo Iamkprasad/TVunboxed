@@ -245,8 +245,14 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div><h2 id="heroTitle">TV</h2><p id="heroSub">checking link…</p></div>
     </div>
     <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 3"/></svg>Device Health<button class="hint" id="healthRefresh" style="border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></div>
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M12 7v5l3 3"/></svg>Device &amp; TV Status<button class="hint" id="healthRefresh" style="border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></div>
       <div class="tiles" id="tiles"></div>
+      <p class="cap" style="margin-top:10px">▸ reads info from the TV (read-only) and this device · refreshing may contact the TV’s control service</p>
+    </div>
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Picture &amp; Sound</div>
+      <p class="status-line">Brightness, equaliser, and picture quality aren’t available here because this TV’s control interface doesn’t expose them.</p>
+      <p class="cap" style="margin-top:8px">▸ to change those, use the TV’s own Settings menu with the remote (do it when it’s okay to change the screen). Volume/mute and supported media controls are in the Remote and Tools tabs.</p>
     </div>
   </section>
 
@@ -343,6 +349,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>IPTV / Live TV</div>
       <div id="playerWrap" class="video-wrap" style="display:none"><video id="player" controls playsinline></video></div>
+      <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Tap <strong>Load Playlist</strong> and pick your own <code>.m3u</code>/<code>.m3u8</code> file (it stays on this device). 2) Tap <strong>Play</strong> to watch on this device. 3) Tap <strong>TV ▶</strong> to send the stream link to the TV (this will open/play on the TV, so do it when it’s okay to change what’s on screen). Direct stream URLs can also be sent from Tools → Throw to TV.</p>
       <label class="drop" id="dropZone"><input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt"><strong>Load Playlist</strong><br><span class="cap" style="letter-spacing:.05em;text-transform:none">your own .m3u · stays on this phone</span></label>
       <div class="list" id="chanList" style="margin-top:12px"></div>
       <button class="btn" id="m3uClear" style="margin-top:12px;width:100%">Clear Playlist</button>
@@ -438,14 +445,18 @@ q('#volLevel').style.setProperty('--fill', q('#volLevel').value + '%');
 /* ───────── dashboard + status chip ───────── */
 const fmtUptime = s => s == null ? '—' : s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
 const tile = (label, value, sub, cls) => `<div class="tile ${cls||''}"><span class="t-label">${label}</span><span class="t-value">${value}</span>${sub ? `<span class="t-sub">${sub}</span>` : ''}</div>`;
+const safeJson = async url => { try { const r = await fetch(url); return await r.json(); } catch { return null; } };
+const pick = (body, key) => { const m = String(body || '').match(new RegExp(key + "['\"]?\\s*:\\s*['\"]?([^,'\"}\\n]+)", 'i')); return m ? m[1].trim() : null; };
 
 async function refreshStatus() {
   const chip = q('#statusChip'), label = q('#statusText');
   chip.classList.remove('ok', 'bad'); label.textContent = 'checking…';
   const hero = q('#heroCard'), heroTitle = q('#heroTitle'), heroSub = q('#heroSub');
-  let health = null;
-  try { health = await (await fetch('/api/health')).json(); } catch {}
-  const tvUp = !!(health && health.tv.reachable);
+  const [health, tvVol, tvWifi, tvMedia, tvPos, tvAppsHttp] = await Promise.all([
+    safeJson('/api/health'), safeJson('/api/tv/info/volume'), safeJson('/api/tv/info/wifi'),
+    safeJson('/api/tv/info/media'), safeJson('/api/tv/info/position'), safeJson('/api/tv/info/apps')
+  ]);
+  const tvUp = !!(health && health.tv && health.tv.reachable);
   chip.classList.add(tvUp ? 'ok' : 'bad');
   label.textContent = tvUp ? 'TV online' : 'TV offline';
   hero.classList.toggle('ok', tvUp); hero.classList.toggle('bad', !tvUp);
@@ -455,11 +466,34 @@ async function refreshStatus() {
   const tiles = [
     tile('TV link', tvUp ? `${health.tv.latency_ms} ms` : 'down', health ? `${health.tv.host}:${health.tv.port}` : '', tvUp ? 'good' : 'bad'),
     tile('TV model', model, 'from getFeatures', 'info'),
-    tile('WebDAV', health ? (health.webdav.reachable ? `ok · ${health.webdav.latency_ms} ms` : 'down') : 'down', health ? `port ${health.webdav.port}` : '', health && health.webdav.reachable ? 'good' : 'bad'),
+    tile('WebDAV', health ? (health.webdav && health.webdav.reachable ? `ok · ${health.webdav.latency_ms} ms` : 'down') : 'down', health && health.webdav ? `port ${health.webdav.port}` : '', health && health.webdav && health.webdav.reachable ? 'good' : 'bad'),
     tile('Share', health && health.bridge && health.bridge.share ? 'on' : 'off', 'phone → TV files', health && health.bridge && health.bridge.share ? 'info' : ''),
     tile('Bridge IP', health && health.bridge ? health.bridge.local_ip : '—', 'open on LAN', 'info'),
     tile('Uptime', health && health.bridge ? fmtUptime(health.bridge.uptime_s) : '—', 'bridge process', ''),
   ];
+  // TV info (read-only HTTP, safe)
+  if (tvVol && tvVol.ok) {
+    const b = tvVol.body || '';
+    const cur = pick(b, 'currentVolume'), max = pick(b, 'maxVolume'), mute = pick(b, 'mute');
+    tiles.push(tile('TV volume', cur != null ? `${cur}${max ? '/' + max : ''}` : '—', mute != null ? ('mute: ' + mute) : 'from TV', 'info'));
+  }
+  if (tvWifi && tvWifi.ok) {
+    const b = tvWifi.body || '';
+    const ssid = pick(b, 'wifiName') || '—';
+    const speed = pick(b, 'speed');
+    tiles.push(tile('TV Wi‑Fi', ssid.replace(/^"+|"+$/g, ''), speed ? speed : 'from TV', 'info'));
+  }
+  const appsCount = (tvAppsHttp && tvAppsHttp.ok && Array.isArray(tvAppsHttp.data)) ? tvAppsHttp.data.length : null;
+  if (appsCount != null) tiles.push(tile('TV apps', String(appsCount), 'installed (HTTP list)', 'info'));
+  if (tvMedia && tvMedia.ok && (tvMedia.body || '').trim()) {
+    const b = tvMedia.body;
+    const st = pick(b, 'status') || pick(b, 'playStatus');
+    if (st && st !== 'error') tiles.push(tile('Media', st, 'from TV', 'info'));
+  }
+  if (tvPos && tvPos.ok && (tvPos.body || '').trim()) {
+    const pos = pick(tvPos.body, 'currentPosition') || pick(tvPos.body, 'position');
+    if (pos && pos !== '0') tiles.push(tile('Position', pos, 'playback', 'info'));
+  }
   // phone-side sensors (Chrome/Android only)
   try {
     const bat = navigator.getBattery ? await navigator.getBattery() : null;
