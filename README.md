@@ -1,65 +1,66 @@
 <p align="center">
-<img src="assets/logo.svg" width="132" alt="TVunboxed logo — a cassette tape" />
+<img src="assets/logo.svg" width="132" alt="TVunboxed — cassette-logo TV companion" />
 </p>
 
 # TVunboxed
 
-Control the TV from your browser on the same Wi‑Fi — no adb, no root, no apps on the TV. Original implementation; see [METHODOLOGY.md](METHODOLOGY.md) and [DESIGN.md](DESIGN.md).
+Control the TV from your browser on the same Wi‑Fi — power, volume, channels, apps, IPTV, file transfer, a file manager for the TV's own storage, and a health dashboard. No adb, no root, nothing to install on the TV, no account, no cloud.
 
-Design system ("Mixtape"): cassette-forward Y2K. Dark and light mode (toggle in the app bar). See [DESIGN.md](DESIGN.md).
+Built and verified on a partner smart-TV (Android 8.0, firmware with the built-in LAN control service). It talks a single specific control protocol; see **Compatibility**.
 
-## Quick start (Termux)
+## What it can do
+
+| Area | What you get | Status |
+|---|---|---|
+| **Remote** | Power, volume, mute, channels, D-pad, back/home/menu, media keys — as "Side A" | ✅ verified live |
+| **Air mouse** | Drag pad + click; the TV enters pointer mode | ⚠️ built, unverified on hardware |
+| **IPTV** | Load your own `.m3u`/`.m3u8`, play on the phone or push the stream to the TV | ⚠️ built, unverified on hardware |
+| **Apps** | Reads the TV's installed-app list (binary protocol over a dedicated socket); tap to launch | ⚠️ parsing unit-tested, unverified on hardware |
+| **Files (phone → TV)** | Browse this phone's share folder; "TV ▶" opens/plays the file on screen | ✅ verified live (protocol-level) |
+| **TV file manager** | Browse the TV's own storage: upload, download (302 direct), rename, delete, mkdir, quota | ⚠️ request format recovered, unverified on hardware |
+| **Dashboard** | TV link latency, model from features, WebDAV reachability, phone battery, phone network, bridge IP/uptime | ✅ renders; TV values real when TV awake |
+| **Type on TV** | Push text into the TV's focused field | ⚠️ unverified |
+| **Uninstall TV apps** | Destructive; double-confirmed | ⚠️ unverified |
+| Screen mirroring | **Impossible by design** (browser/phone can't push frames to this firmware) | not supported |
+| App-store installs from a catalog | Intentionally not reproduced | not supported |
+
+## Compatibility — this is NOT universal
+
+TVunboxed speaks **one specific protocol** — the control service baked into the firmware of the target TV family. It will **not** control Samsung (Tizen), LG (webOS), Sony, Roku, or other Android TVs without additional backends (each is its own reverse-engineering project). What it *does* cover is every TV running that same firmware family: discovery finds them automatically on the LAN. If your TV model is different, treat this as reference code for porting, not a drop-in solution.
+
+## Requirements
+
+- Any modern Linux with **Python 3.9+** (Termux on Android works well — this project is developed there)
+- Phone/computer and the TV on the **same Wi‑Fi/LAN**
+- The TV powered on and joined to Wi‑Fi
+- Network access for the phone browser: CDN (fonts) and nothing else — the bridge itself runs fully offline
+- No root, no developer options needed on the phone
+
+## Run
 
 ```sh
-pkg install python git
 git clone https://github.com/Iamkprasad/TVunboxed.git && cd TVunboxed
-./start.sh
+./start.sh                       # auto-discover the TV, serve http://127.0.0.1:8080
+./start.sh --tv <tv-ip>          # or specify it
+./start.sh --lan                 # also reachable from other devices on the network
 ```
 
-That auto-discovers the TV and serves `http://127.0.0.1:8080` — open it in the phone's browser. For access from other devices on the network add `--lan` (trusted Wi‑Fi only). Or pass `--tv <ip>` if discovery fails. Use `termux-wake-lock` and disable battery optimizations for Termux.
+Open `http://127.0.0.1:8080` in a browser on the same device (or `http://<this-machine-ip>:8080` with `--lan`).
 
-> `--lan` binds `0.0.0.0`. The control protocol and this bridge are unauthenticated plaintext. Trusted Wi‑Fi only. For phone-only browsing, omit `--lan` (binds localhost).
+Useful flags: `--http-port N`, `--bind IP`, `--share DIR` (default `/sdcard/Download` if present; read-only, exposed to the TV at `/files/`), `--no-share`, `--discover` (print TVs and exit), `--tv-webdav-port N` (default 8000).
 
-## Tabs
+Termux tips: `pkg install python git` · `termux-wake-lock` · disable battery optimization for Termux or Android will kill the bridge.
 
-- **Home** — device health: TV link + model + latency, WebDAV, battery and network of this phone, bridge IP/uptime
-- **Files** — browse this phone's share folder; tap **TV ▶** to play on the TV
-- **Remote** — D-pad or Air Mouse (Side A / Side B), power, volume, media keys
-- **TV** — installed apps (tap to launch), IPTV playlists (.m3u), and the TV's built-in file manager (read/write/rename/delete/mkdir/quota)
-- **Tools** — type into the focused field, open any URL on the TV, launch apps, danger zone
+## What it is not
 
-## CLI
+- Not a multi-vendor universal remote (see Compatibility)
+- Not a server-side/cloud service — nothing leaves your LAN
+- Not authenticated — anyone on your Wi‑Fi can send the same commands; **never port-forward it**, never run it on untrusted Wi‑Fi
+- Not affiliated with the TV vendor. The TV's own services are unauthenticated by the vendor's design; this app merely speaks them.
 
-`python3 -m tvunboxed [--tv IP] [--port N] [--bind IP] [--http-port N] [--lan] [--discover] [--share DIR] [--no-share]`
+## Design
 
-Without `--tv`, LAN discovery is used; exactly one TV must be found. `--share DIR` (default: `/sdcard/Download` if it exists) serves that directory read-only to the TV at `/files/`. Use `--no-share` to disable.
-
-## REST (POST JSON)
-
-| Route | Body | Action |
-|---|---|---|
-| `/api/key` | `{"code":24,"long":false}` | Key code; `long` = long-press |
-| `/api/volume` | `{"level":30}` | absolute volume 0–100 |
-| `/api/mute` | `{}` | toggle mute |
-| `/api/source` | `{"index":0}` | switch input source |
-| `/api/app` | `{"package":"com.example"}` | launch app by package |
-| `/api/tvapps` | — | list installed apps on the TV |
-| `/api/openfile` | `{"path":"a/b.mkv"}` or `{"path":"https://x/s.m3u8"}` | open on TV (share-relative or absolute URL) |
-| `/api/open-url` | `{"url":"https://…"}` | same, absolute URL |
-| `/api/browser` | `{}` | open the TV's browser |
-| `/api/airmouse` | `{"dx":2.5,"dy":-1}` | relative pointer deltas |
-| `/api/airclick` | `{}` | pointer click |
-| `/api/mouse-mode` | `{"on":true}` | enter/leave TV pointer mode |
-| `/api/type` | `{"text":"hello"}` | type into the focused field |
-| `/api/uninstall` | `{"package":"x","confirm":"uninstall"}` | **uninstall a TV app** |
-| `/api/dav/list?dir=/` | — | list a TV directory |
-| `/api/dav/get?path=/a/b` | — | 302 redirect to the file URL |
-| `/api/dav/put` | raw body, `X-File-Path: a/b.mkv` | upload to TV |
-| `/api/dav/delete` `/api/dav/mkcol` `/api/dav/move` | `{"path":…}` / `{"from","to"}` | TV file management |
-| `GET /api/files?dir=.` `/files/<path>` | — | phone share listing / raw file |
-| `GET /api/features` `/api/status` `/api/health` | — | TV identity, bridge status, latency |
-
-Keys are platform key codes: 24/25 vol, 164 mute, 19–23 d-pad/OK, 4 back, 3 home, 82 menu, 26 power, 66 enter, 85 play/pause, 86 stop, 87 next, 88 rewind, 90 ff, 166–167 channel −/+.
+"Mixtape" — cassette-forward Y2K. Dark and light mode (toggle in the app bar). See [DESIGN.md](DESIGN.md) for the full design system, [METHODOLOGY.md](METHODOLOGY.md) for provenance.
 
 ## Tests
 
@@ -67,21 +68,6 @@ Keys are platform key codes: 24/25 vol, 164 mute, 19–23 d-pad/OK, 4 back, 3 ho
 python3 -m unittest discover tests -v
 ```
 
-## Security
-
-- The TV's control port performs **no authentication**. Anyone on your LAN can send the same commands as this app — that's inherent to the firmware.
-- The TV also exposes an unauthenticated file/WebDAV service on port 8000 — used by the TV tab. Treat your Wi‑Fi as trusted.
-- Never port-forward this bridge. Never run it on untrusted networks.
-
-## Protocol (observed, black-box)
-
-- **Discover**: UDP broadcast to port 48689; reply is a colon-separated record `<ver>:<name>:<controlPort>:<speakerPort>:<block>:sn=0x…:<flags>`.
-- **Control**: TCP to control port. Handshake: `sayHello\r\n<model>\r\n\r\n`, then `auth\r\n<path> <sourcePort> <marker>\r\n\r\n` (`sourcePort` = this bridge's `--http-port`). Features: `getFeatures\r\n<model>\r\n\r\n` → `server_features:…`. Keepalive: `HeartBeat\r\nlive\r\n\r\n`.
-- **Keys**: `KEYEVENT\r\n<code>\r\n\r\n` (`longpress` variant exists). Volume: `MediaControl\r\nsetVolume <0..100>\r\n\r\n`.
-- **Open on TV**: `Openfile\r\nOpen <url-encoded path> <mime>\r\n\r\n` — the TV fetches that path from the `http://<phone>:<sourcePort>` origin named in `auth`. Absolute `http(s)` URLs also work (streams).
-- **Apps**: `STARTAPPEVNET\r\n<pkg>`; list: `GETAPPINFOSEVNET` on a dedicated socket (binary, length-prefixed records).
-- **Air mouse**: `AIRMOUSEEVNET\r\n<float x>\r\n<float y>\r\n<button>\r\n\r\n`; pointer mode `MOUSEENABLEEVENT\r\n0|1\r\n\r\n`; click `AIRCLICKEVENT\r\n1\r\n\r\n`.
-
 ## License
 
-MIT — see [LICENSE](LICENSE). Not affiliated with the TV vendor. Third-party trademarks belong to their owners.
+MIT — see [LICENSE](LICENSE).
