@@ -438,7 +438,7 @@ qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
   qa('.nav-item').forEach(b => b.classList.toggle('active', b === btn));
   qa('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + id));
   window.scrollTo({top: 0, behavior: 'smooth'});
-  if (id === 'tv') loadApps();
+  if (id === 'tv') loadApps(false);
 }));
 
 /* ---------- api ---------- */
@@ -737,31 +737,53 @@ q('#uninstallBtn').addEventListener('click', async () => {
 });
 
 /* ───────── apps on TV ───────── */
-async function loadApps() {
+const APPS_TTL = 10 * 60 * 1000; // 10 min; manual refresh button always refetches
+let appsCache = { at: 0, data: null };
+try { const raw = sessionStorage.getItem('appsCache'); if (raw) { const p = JSON.parse(raw); if (p && p.at && Array.isArray(p.apps)) appsCache = { at: p.at, data: p.apps }; } } catch {}
+
+function renderApps(apps, fromCache) {
   const grid = q('#appGrid');
-  grid.innerHTML = '<div class="empty" style="grid-column:1/-1">loading…</div>';
+  if (!apps || !apps.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">no apps reported</div>'; return; }
+  grid.innerHTML = '';
+  for (const app of apps) {
+    const tile = document.createElement('button');
+    tile.className = 'app-tile';
+    const initials = (app.name || '?').trim().slice(0, 1).toUpperCase();
+    tile.innerHTML = app.icon
+      ? `<img class="app-icon" src="${app.icon}" alt="">`
+      : `<span class="app-icon">${esc(initials)}</span>`;
+    tile.innerHTML += `<span class="app-name">${esc(app.name || app.package)}</span>`;
+    tile.addEventListener('click', async () => {
+      try { await call('/api/app', {package: app.package}); toast('Launching ' + (app.name || app.package)); }
+      catch (e) { toast('Error: ' + e.message); }
+    });
+    grid.appendChild(tile);
+  }
+  if (fromCache) {
+    const note = document.createElement('div');
+    note.className = 'cap';
+    note.style.gridColumn = '1/-1';
+    note.textContent = 'cached view — tap refresh to reload';
+    grid.appendChild(note);
+  }
+}
+
+async function loadApps(force = true) {
+  const grid = q('#appGrid');
+  const fresh = appsCache.data && (Date.now() - appsCache.at < APPS_TTL);
+  if (!force && fresh) { renderApps(appsCache.data, true); return; }
+  if (!force && appsCache.data) { renderApps(appsCache.data, true); /* refresh in background */ } else {
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1">loading…</div>';
+  }
   try {
     const d = await (await fetch('/api/tvapps')).json();
-    if (!d.ok) { grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(d.error || 'unavailable')}</div>`; return; }
-    if (!d.apps.length) { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">no apps reported</div>'; return; }
-    grid.innerHTML = '';
-    for (const app of d.apps) {
-      const tile = document.createElement('button');
-      tile.className = 'app-tile';
-      const initials = (app.name || '?').trim().slice(0, 1).toUpperCase();
-      tile.innerHTML = app.icon
-        ? `<img class="app-icon" src="${app.icon}" alt="">`
-        : `<span class="app-icon">${esc(initials)}</span>`;
-      tile.innerHTML += `<span class="app-name">${esc(app.name || app.package)}</span>`;
-      tile.addEventListener('click', async () => {
-        try { await call('/api/app', {package: app.package}); toast('Launching ' + (app.name || app.package)); }
-        catch (e) { toast('Error: ' + e.message); }
-      });
-      grid.appendChild(tile);
-    }
-  } catch { grid.innerHTML = '<div class="empty" style="grid-column:1/-1">unreachable</div>'; }
+    if (!d.ok) { if (!appsCache.data) grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${esc(d.error || 'unavailable')}</div>`; return; }
+    appsCache = { at: Date.now(), data: d.apps };
+    try { sessionStorage.setItem('appsCache', JSON.stringify({at: appsCache.at, apps: d.apps})); } catch {}
+    renderApps(d.apps, false);
+  } catch { if (!appsCache.data) grid.innerHTML = '<div class="empty" style="grid-column:1/-1">unreachable</div>'; }
 }
-q('#appsRefresh').addEventListener('click', loadApps);
+q('#appsRefresh').addEventListener('click', () => loadApps(true));
 
 /* ───────── segmented toggle ───────── */
 const seg = { dpad: q('#segDpad'), air: q('#segAir'), panelDpad: q('#panel-dpad'), panelAir: q('#panel-air') };

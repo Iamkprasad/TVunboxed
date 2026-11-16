@@ -112,7 +112,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
         if route == "/api/tv/info/wifi":
             return self._cmd_tv_http("get_wifi_info", "/remote/get_wifi_info")
         if route == "/api/tv/info/apps":
-            return self._cmd_tv_http("getinstallapks", "/apkmanager/getinstallapks", json_body=True)
+            return self._cmd_tv_http("getinstallapks", "/apkmanager/getinstallapks", json_body=True, cache_ttl=300)
         if route.startswith("/files/"):
             return self._serve_shared(route[len("/files/"):])
         for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
@@ -204,7 +204,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
     def _cmd_tvapps(self):
         import time as _time
         cached = getattr(self.server, "tvapps_cache", None)
-        if cached and _time.monotonic() - cached["at"] < 60:
+        if cached and _time.monotonic() - cached["at"] < 600:
             return self._send_json({"ok": True, "apps": cached["apps"], "cached": True})
         try:
             apps = fetch_app_list(self.server.session.host, self.server.session.port)
@@ -213,8 +213,14 @@ class RemoteHandler(BaseHTTPRequestHandler):
         self.server.tvapps_cache = {"at": _time.monotonic(), "apps": apps}
         return self._send_json({"ok": True, "apps": apps, "cached": False})
 
-    def _cmd_tv_http(self, action, path, json_body=False):
+    def _cmd_tv_http(self, action, path, json_body=False, cache_ttl=0):
         """Read-only proxy for the TV's built-in HTTP endpoints (no TV UI impact)."""
+        import time as _time
+        cache = getattr(self.server, "tvhttp_cache", {})
+        if cache_ttl:
+            hit = cache.get(path)
+            if hit and _time.monotonic() - hit["at"] < cache_ttl:
+                return self._send_json(hit["out"])
         host = self.server.tvdav.host
         port = self.server.tvdav.port
         url = f"http://{host}:{port}{path}"
@@ -230,6 +236,9 @@ class RemoteHandler(BaseHTTPRequestHandler):
                 out["data"] = json.loads(raw) if raw.strip() else None
             except json.JSONDecodeError:
                 out["data"] = None
+        if cache_ttl:
+            cache[path] = {"at": _time.monotonic(), "out": dict(out)}
+            self.server.tvhttp_cache = cache
         return self._send_json(out)
 
     def _dav(self):
