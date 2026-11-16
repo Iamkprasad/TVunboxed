@@ -239,6 +239,19 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .drawer .dpad .btn{min-height:60px}
 .pad-mini{height:160px;min-height:140px}
 .sheet-sep{height:1px;background:var(--line);opacity:.7}
+.sheet-tabs{display:flex;gap:6px;margin-left:12px}
+.sheet-tab{all:unset;cursor:pointer;color:var(--dim);border:1px solid var(--bord);padding:7px 12px;font-family:var(--font-mono);letter-spacing:.14em;font-size:.58rem;text-transform:uppercase;background:var(--muted);white-space:nowrap}
+.sheet-tab.active{background:var(--accent);color:var(--accent-ink)}
+.sheet-viewport{overflow:hidden;touch-action:pan-y}
+.sheet-track{display:flex;transition:transform .28s ease;will-change:transform}
+.sheet-page{flex:0 0 100%;min-width:0;display:grid;align-content:start;gap:14px;padding:2px}
+.kb{display:grid;gap:6px}
+.kb-row{display:grid;gap:5px;grid-auto-flow:column;grid-auto-columns:1fr}
+.kbkey{min-height:44px;display:grid;place-items:center;background:var(--muted);border:1px solid var(--bord);border-radius:8px;font-family:var(--font-mono);font-size:.82rem;color:var(--text);cursor:pointer;user-select:none;text-align:center;line-height:1.1;padding:4px 2px}
+.kbkey:active{background:var(--accent);color:var(--accent-ink)}
+.kbkey.wide{grid-column:span 2}
+.kbkey.active{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.kbkey.fn{font-size:.62rem;letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){.drawer{transition:none}.drawer-backdrop{transition:none}}
 
 /* ── toast ───────────────────────────────────────────────────────────── */
@@ -442,51 +455,67 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-label="Remote sheet" aria-hidden="true">
   <div class="drawer-handle" aria-hidden="true"></div>
-  <div class="drawer-head">Remote<button class="drawer-close" id="drawerClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-  <div class="drawer-body">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
-      <button class="btn" data-key="26" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
-      <button class="btn btn-blue" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>Vol −</button>
-      <button class="btn btn-blue" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
-      <button class="btn btn-pink mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
+  <div class="drawer-head">Remote
+    <div class="sheet-tabs" role="tablist" aria-label="Sheet pages">
+      <button class="sheet-tab active" data-page="0" role="tab" aria-selected="true">Side A</button>
+      <button class="sheet-tab" data-page="1" role="tab" aria-selected="false">Side B</button>
     </div>
+    <button class="drawer-close" id="drawerClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="drawer-body" style="gap:10px;padding-top:12px">
+    <div class="sheet-viewport" id="sheetViewport">
+      <div class="sheet-track" id="sheetTrack">
+        <!-- ════════ SIDE A — d-pad remote ════════ -->
+        <div class="sheet-page" data-page="0" role="tabpanel">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <button class="btn" data-key="26" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
+            <button class="btn btn-blue" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>Vol −</button>
+            <button class="btn btn-blue" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
+            <button class="btn btn-pink mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
+          </div>
 
-    <div class="dpad">
-      <button class="btn spacer" tabindex="-1"></button>
-      <button class="btn" data-key="19" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
-      <button class="btn spacer" tabindex="-1"></button>
-      <button class="btn" data-key="21" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-      <button class="btn btn-ok" data-key="23" aria-label="OK"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></button>
-      <button class="btn" data-key="22" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-      <button class="btn spacer" tabindex="-1"></button>
-      <button class="btn" data-key="20" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-      <button class="btn spacer" tabindex="-1"></button>
-    </div>
+          <div class="dpad">
+            <button class="btn spacer" tabindex="-1"></button>
+            <button class="btn" data-key="19" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+            <button class="btn spacer" tabindex="-1"></button>
+            <button class="btn" data-key="21" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <button class="btn btn-ok" data-key="23" aria-label="OK"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></button>
+            <button class="btn" data-key="22" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+            <button class="btn spacer" tabindex="-1"></button>
+            <button class="btn" data-key="20" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+            <button class="btn spacer" tabindex="-1"></button>
+          </div>
 
-    <div class="nav-strip" style="margin-top:0;grid-template-columns:repeat(3,1fr)">
-      <button class="btn" data-key="4"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
-      <button class="btn" data-key="3"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</button>
-      <button class="btn" data-key="82"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
-    </div>
+          <div class="nav-strip" style="margin-top:0;grid-template-columns:repeat(3,1fr)">
+            <button class="btn" data-key="4"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
+            <button class="btn" data-key="3"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</button>
+            <button class="btn" data-key="82"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
+          </div>
 
-    <div class="media-strip" style="margin-top:0;grid-template-columns:repeat(4,1fr)">
-      <button class="btn" data-key="88" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6z"/><path d="M20 6l-7 6 7 6z"/></svg></button>
-      <button class="btn btn-green" data-key="85" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-      <button class="btn" data-key="90" aria-label="Forward"><svg viewBox="0 0 24 24"><path d="M13 6l7 6-7 6z"/><path d="M4 6l7 6-7 6z"/></svg></button>
-      <button class="btn" data-key="86" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="0"/></svg></button>
-    </div>
-    <div class="ch-strip" style="margin-top:0">
-      <button class="btn" data-key="166"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>CH −</button>
-      <button class="btn" data-key="167"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>CH +</button>
-    </div>
+          <div class="media-strip" style="margin-top:0;grid-template-columns:repeat(4,1fr)">
+            <button class="btn" data-key="88" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6z"/><path d="M20 6l-7 6 7 6z"/></svg></button>
+            <button class="btn btn-green" data-key="85" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+            <button class="btn" data-key="90" aria-label="Forward"><svg viewBox="0 0 24 24"><path d="M13 6l7 6-7 6z"/><path d="M4 6l7 6-7 6z"/></svg></button>
+            <button class="btn" data-key="86" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="0"/></svg></button>
+          </div>
+          <div class="ch-strip" style="margin-top:0">
+            <button class="btn" data-key="166"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>CH −</button>
+            <button class="btn" data-key="167"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>CH +</button>
+          </div>
+        </div>
 
-    <div class="sheet-sep" aria-hidden="true"></div>
-
-    <div class="field" style="margin:0">
-      <button class="btn btn-blue mouse-toggle" style="flex:1">Enable Pointer</button>
-      <button class="btn airclick-btn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M9 11.5V5a2 2 0 0 1 4 0v6.5l3.5.8a2 2 0 0 1 1.4 2.3L17 19a2 2 0 0 1-2 1.7H11a2 2 0 0 1-1.7-.9L7 16.6a2 2 0 0 1 .4-2.4z"/></svg>Click</button>
+        <!-- ════════ SIDE B — trackpad & keyboard ════════ -->
+        <div class="sheet-page" data-page="1" role="tabpanel">
+          <div class="field" style="margin:0">
+            <button class="btn btn-blue mouse-toggle" style="flex:1">Enable Pointer</button>
+            <button class="btn airclick-btn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M9 11.5V5a2 2 0 0 1 4 0v6.5l3.5.8a2 2 0 0 1 1.4 2.3L17 19a2 2 0 0 1-2 1.7H11a2 2 0 0 1-1.7-.9L7 16.6a2 2 0 0 1 .4-2.4z"/></svg>Click</button>
+          </div>
+          <div class="pad pad-mini" id="drawerPad">drag to move TV pointer</div>
+          <div class="kb" id="kb" aria-label="Keyboard"></div>
+          <p class="cap" style="margin:0">▸ tap keys to type into the TV’s focused field · Shift for uppercase · 123/#+= for symbols</p>
+        </div>
+      </div>
     </div>
-    <div class="pad pad-mini" id="drawerPad">drag to move TV pointer</div>
   </div>
 </aside>
 
@@ -520,6 +549,77 @@ drawerFab.addEventListener('click', toggleDrawer);
 drawerBackdrop.addEventListener('click', () => setDrawer(false));
 q('#drawerClose').addEventListener('click', () => setDrawer(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
+
+/* ───────── sheet pages (Side A / Side B, swipe left-right) ───────── */
+const SP_PAGES = 2;
+let spPage = 0;
+const spTrack = q('#sheetTrack'), spTabs = qa('.sheet-tab'), spViewport = q('#sheetViewport');
+function setSheetPage(i) {
+  spPage = Math.max(0, Math.min(SP_PAGES - 1, i));
+  spTrack.style.transform = `translateX(-${spPage * 100}%)`;
+  spTabs.forEach(t => { const on = +t.dataset.page === spPage; t.classList.toggle('active', on); t.setAttribute('aria-selected', String(on)); });
+}
+spTabs.forEach(t => t.addEventListener('click', () => setSheetPage(+t.dataset.page)));
+let spStart = null;
+spViewport.addEventListener('pointerdown', e => {
+  spStart = e.target.closest('button,input,.pad,.kb,select,textarea,a') ? null : {x: e.clientX, y: e.clientY};
+}, {passive: true});
+spViewport.addEventListener('pointercancel', () => { spStart = null; }, {passive: true});
+spViewport.addEventListener('pointerup', e => {
+  if (!spStart) return;
+  const dx = e.clientX - spStart.x, dy = e.clientY - spStart.y;
+  spStart = null;
+  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) setSheetPage(spPage + (dx < 0 ? 1 : -1));
+}, {passive: true});
+
+/* ───────── TV keyboard (Side B) ───────── */
+const KB_ROWS = {
+  abc: [
+    ['1','2','3','4','5','6','7','8','9','0','-','='],
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['shift','z','x','c','v','b','n','m','back'],
+    ['tab','123','space','enter']
+  ],
+  sym: [
+    ['!','@','#','$','%','&','*','(',')'],
+    ['-','_','=','+','[',']','{','}','\\','/'],
+    [';',':','\'','"',',','.','<','>','?'],
+    ['~','`','^','|','±','×','÷','°','—','back'],
+    ['tab','abc','space','enter']
+  ]
+};
+let kbLayer = 'abc', kbShift = false;
+function kbKey(label, val, cls, act) {
+  const b = document.createElement('button');
+  b.className = 'kbkey' + (cls ? ' ' + cls : '');
+  b.textContent = label;
+  b.addEventListener('click', act || (() => {
+    const ch = (kbLayer === 'abc' && kbShift) ? val.toUpperCase() : val;
+    call('/api/type', {text: ch}).catch(e => toast('Error: ' + e.message));
+    if (kbShift) { kbShift = false; renderKb(); }
+  }));
+  return b;
+}
+function renderKb() {
+  const kb = q('#kb'); kb.innerHTML = '';
+  for (const rowKeys of KB_ROWS[kbLayer]) {
+    const row = document.createElement('div'); row.className = 'kb-row';
+    for (const k of rowKeys) {
+      let el;
+      if (k === 'shift') el = kbKey('⇧ Shift', '', 'fn' + (kbShift ? ' active' : ''), () => { kbShift = !kbShift; renderKb(); });
+      else if (k === 'back') el = kbKey('⌫ Back', '', 'fn', () => post('/api/key', {code: 67}));
+      else if (k === 'enter') el = kbKey('⏎ Enter', '', 'fn wide', () => post('/api/key', {code: 66}));
+      else if (k === 'tab') el = kbKey('⇥ Tab', '', 'fn', () => post('/api/key', {code: 61}));
+      else if (k === 'space') el = kbKey('space', ' ', 'wide', null);
+      else if (k === '123' || k === 'abc') el = kbKey(k, '', 'fn', () => { kbLayer = k === '123' ? 'sym' : 'abc'; renderKb(); });
+      else el = kbKey((kbLayer === 'abc' && kbShift) ? k.toUpperCase() : k, k);
+      row.appendChild(el);
+    }
+    kb.appendChild(row);
+  }
+}
+renderKb();
 
 /* ---------- navigation ---------- */
 qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
