@@ -114,27 +114,6 @@ main{max-width:520px;margin:0 auto;padding:16px 14px 0;display:grid;gap:16px}
 .danger{background:var(--danger);color:var(--danger-ink);border-color:var(--bord)}
 .icon-btn{width:46px;height:46px;padding:0}
 
-.hero-strip{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:10px}
-.vol-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.nav-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-.media-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
-.ch-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.btn-row{display:flex;gap:10px}.btn-row .btn{flex:1}
-
-/* ── segmented toggle (Side A / Side B) ──────────────────────────────── */
-.segmented{display:grid;grid-template-columns:1fr 1fr;background:var(--recess);border:2px solid var(--bord);box-shadow:var(--hard-sm)}
-.seg-btn{all:unset;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 6px;cursor:pointer;color:var(--dim);border-right:2px solid var(--bord);transition:background .18s,color .18s}
-.seg-btn:last-child{border-right:0}
-.seg-btn .reels{display:inline-flex;gap:5px}
-.seg-btn .reels i{width:12px;height:12px;border:2px solid currentColor;border-radius:50%;display:block}
-.seg-text{display:flex;flex-direction:column;align-items:flex-start;line-height:1.05}
-.seg-text b{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase}
-.seg-text i{font-family:var(--font-mono);font-style:normal;font-size:.52rem;letter-spacing:.24em;text-transform:uppercase;opacity:.75}
-.seg-btn.active{background:var(--accent);color:var(--accent-ink)}
-.seg-btn:focus-visible{outline:2px solid var(--info);outline-offset:-2px}
-.seg-panel{display:none}
-.seg-panel.show{display:grid;gap:16px;animation:fade .28s ease}
-
 /* ── d-pad ───────────────────────────────────────────────────────────── */
 .dpad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;padding:4px 0}
 .dpad .btn{height:64px;font-size:0;background:var(--muted)}
@@ -221,10 +200,6 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .nav-item.active svg{stroke:var(--accent-ink)}
 
 /* ── sheet (floating remote, Android-style bottom drawer) ────────────── */
-.drawer-fab{position:fixed;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:34;width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--accent);border:2px solid var(--bord);box-shadow:var(--hard-sm);cursor:pointer;color:var(--accent-ink)}
-.drawer-fab svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square}
-.drawer-fab:active{transform:scale(.94)}
-.drawer-fab.open{opacity:0;pointer-events:none}
 .drawer-backdrop{position:fixed;inset:0;z-index:44;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .22s}
 .drawer-backdrop.open{opacity:1;pointer-events:auto}
 .drawer{position:fixed;left:0;right:0;bottom:0;z-index:46;background:var(--card);border:2px solid var(--bord);border-bottom:0;border-radius:22px 22px 0 0;box-shadow:var(--hard);transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:88vh;display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
@@ -253,6 +228,10 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .kbkey.active{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .kbkey.fn{font-size:.62rem;letter-spacing:.05em}
 @media (prefers-reduced-motion: reduce){.drawer{transition:none}.drawer-backdrop{transition:none}}
+
+/* nav-remote: opens the bottom tray instead of a tab page */
+.nav-remote[aria-pressed="true"]{color:var(--accent-ink);background:var(--accent);box-shadow:var(--hard-sm)}
+.nav-remote[aria-pressed="true"] svg{stroke:var(--accent-ink)}
 
 /* ── toast ───────────────────────────────────────────────────────────── */
 .toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,8px);opacity:0;z-index:30;background:var(--card);border:2px solid var(--accent);color:var(--text);padding:10px 18px;font-family:var(--font-mono);font-size:.72rem;pointer-events:none;transition:.2s}
@@ -290,74 +269,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
     </div>
   </section>
 
-  <!-- ════════ TAB: REMOTE ════════ -->
-  <section class="tab" id="tab-remote" role="tabpanel">
-    <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power &amp; Volume</div>
-      <div class="hero-strip">
-        <button class="btn btn-amber" data-key="26" data-long="true"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Hold</button>
-        <button class="btn" data-key="26"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
-        <button class="btn btn-pink mute-toggle" id="muteBtn"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
-      </div>
-      <input id="volLevel" type="range" min="0" max="100" value="30" aria-label="Volume level">
-      <div class="vol-strip">
-        <button class="btn btn-blue" data-key="25"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 12H23"/></svg>Vol −</button>
-        <button class="btn btn-blue" data-key="24"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
-      </div>
-    </div>
-
-    <div class="segmented" role="group" aria-label="Controller mode">
-      <button class="seg-btn active" id="segDpad" aria-pressed="true"><span class="reels"><i></i><i></i></span><span class="seg-text"><b>Side A</b><i>d-pad</i></span></button>
-      <button class="seg-btn" id="segAir" aria-pressed="false"><span class="reels"><i></i><i></i></span><span class="seg-text"><b>Side B</b><i>air mouse</i></span></button>
-    </div>
-
-    <div class="seg-panel show" id="panel-dpad">
-    <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>Navigation</div>
-      <div class="dpad">
-        <button class="btn spacer" tabindex="-1"></button>
-        <button class="btn" data-key="19" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
-        <button class="btn spacer" tabindex="-1"></button>
-        <button class="btn" data-key="21" aria-label="Left"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
-        <button class="btn btn-ok" data-key="23" aria-label="OK"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></button>
-        <button class="btn" data-key="22" aria-label="Right"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-        <button class="btn spacer" tabindex="-1"></button>
-        <button class="btn" data-key="20" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-        <button class="btn spacer" tabindex="-1"></button>
-      </div>
-      <div class="nav-strip">
-        <button class="btn" data-key="4"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
-        <button class="btn" data-key="3"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</button>
-        <button class="btn" data-key="82"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M6 5l14 7-14 7z"/></svg>Media</div>
-      <div class="media-strip">
-        <button class="btn" data-key="88" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6z"/><path d="M20 6l-7 6 7 6z"/></svg></button>
-        <button class="btn btn-green" data-key="85" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-        <button class="btn" data-key="90" aria-label="Forward"><svg viewBox="0 0 24 24"><path d="M13 6l7 6-7 6z"/><path d="M4 6l7 6-7 6z"/></svg></button>
-        <button class="btn" data-key="86" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="0"/></svg></button>
-      </div>
-      <div class="ch-strip">
-        <button class="btn" data-key="166"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>CH −</button>
-        <button class="btn" data-key="167"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>CH +</button>
-      </div>
-    </div>
-    </div><!-- /panel-dpad -->
-
-    <div class="seg-panel" id="panel-air">
-    <div class="card">
-      <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Air Mouse <span class="hint" id="mouseHint">off</span></div>
-      <div class="field" style="margin-bottom:12px">
-        <button class="btn btn-blue mouse-toggle" id="mouseModeBtn" style="flex:1">Enable Pointer</button>
-        <button class="btn airclick-btn" id="airClickBtn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M9 11.5V5a2 2 0 0 1 4 0v6.5l3.5.8a2 2 0 0 1 1.4 2.3L17 19a2 2 0 0 1-2 1.7H11a2 2 0 0 1-1.7-.9L7 16.6a2 2 0 0 1 .4-2.4z"/></svg>Click</button>
-      </div>
-      <div class="pad" id="airPad">drag anywhere — moves the TV pointer</div>
-      <p class="cap" style="margin-top:10px">▸ drag anywhere on the pad · relative deltas · toggle pointer mode first</p>
-    </div>    </div><!-- /panel-air -->
-  </section>
+  <!-- ════════ Remote triggers the bottom sheet (nav item id="navRemote") ════════ -->
 
   <!-- ════════ TAB: FILES ════════ -->
   <section class="tab" id="tab-files" role="tabpanel">
@@ -450,8 +362,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 
 </main>
 
-<!-- ════════ floating remote drawer (all tabs) ════════ -->
-<button class="drawer-fab" id="drawerFab" aria-label="Toggle remote drawer" title="Remote"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><circle cx="12" cy="7" r="1.4"/><path d="M11.2 15h1.6"/></svg></button>
+<!-- ════════ bottom-sheet remote tray (all tabs) ════════ -->
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
 <aside class="drawer" id="drawer" role="dialog" aria-label="Remote sheet" aria-hidden="true">
   <div class="drawer-handle" aria-hidden="true"></div>
@@ -467,12 +378,14 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div class="sheet-track" id="sheetTrack">
         <!-- ════════ SIDE A — d-pad remote ════════ -->
         <div class="sheet-page" data-page="0" role="tabpanel">
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+            <button class="btn btn-amber" data-key="26" data-long="true" style="grid-column:span 1" aria-label="Hold power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Hold</button>
             <button class="btn" data-key="26" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
             <button class="btn btn-blue" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>Vol −</button>
             <button class="btn btn-blue" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
             <button class="btn btn-pink mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
           </div>
+          <input id="volLevel" type="range" min="0" max="100" value="30" aria-label="Volume level" style="margin-top:0">
 
           <div class="dpad">
             <button class="btn spacer" tabindex="-1"></button>
@@ -523,7 +436,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 <nav class="navbar" role="tablist">
   <button class="nav-item active" data-tab="dashboard" role="tab"><svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l4-4"/><circle cx="12" cy="14" r="1.6"/></svg>Home</button>
   <button class="nav-item" data-tab="files" role="tab"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Files</button>
-  <button class="nav-item" data-tab="remote" role="tab"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><path d="M11 18h2"/></svg>Remote</button>
+  <button class="nav-item nav-remote" id="navRemote" data-tab="remote" type="button" role="tab" aria-pressed="false" aria-label="Remote — opens remote tray"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><path d="M11 18h2"/></svg>Remote</button>
   <button class="nav-item" data-tab="tv" role="tab"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>TV</button>
   <button class="nav-item" data-tab="tools" role="tab"><svg viewBox="0 0 24 24"><path d="M14 7l-6.5 6.5a2 2 0 0 0 2.8 2.8L17 9.5"/><path d="M14 7l3-3 3 3-3 3"/></svg>Tools</button>
 </nav>
@@ -535,17 +448,17 @@ const q = s => document.querySelector(s);
 const qa = s => [...document.querySelectorAll(s)];
 const toast = msg => { const el = q('#toast'); el.textContent = msg; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 2200); };
 
-/* ───────── floating remote drawer ───────── */
-const drawer = q('#drawer'), drawerFab = q('#drawerFab'), drawerBackdrop = q('#drawerBackdrop');
+/* ───────── remote tray (bottom sheet) ───────── */
+const drawer = q('#drawer'), drawerBackdrop = q('#drawerBackdrop'), navRemote = q('#navRemote');
 function setDrawer(open) {
   drawer.classList.toggle('open', open);
   drawerBackdrop.classList.toggle('open', open);
-  drawerFab.classList.toggle('open', open);
+  navRemote.setAttribute('aria-pressed', String(open));
   drawer.setAttribute('aria-hidden', String(!open));
   document.body.style.overflow = open ? 'hidden' : '';
 }
 const toggleDrawer = () => setDrawer(!drawer.classList.contains('open'));
-drawerFab.addEventListener('click', toggleDrawer);
+navRemote.addEventListener('click', toggleDrawer);
 drawerBackdrop.addEventListener('click', () => setDrawer(false));
 q('#drawerClose').addEventListener('click', () => setDrawer(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
@@ -623,6 +536,7 @@ renderKb();
 
 /* ---------- navigation ---------- */
 qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
+  if (btn.id === 'navRemote') return; // remote nav toggles the tray, not a tab page
   const id = btn.dataset.tab;
   qa('.nav-item').forEach(b => b.classList.toggle('active', b === btn));
   qa('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + id));
@@ -891,7 +805,6 @@ function flushAirMouse() {
 }
 const syncPointerUI = () => {
   qa('.mouse-toggle').forEach(b => { b.textContent = mouseEnabled ? 'Disable Pointer' : 'Enable Pointer'; });
-  q('#mouseHint').textContent = mouseEnabled ? 'on' : 'off';
 };
 qa('.mouse-toggle').forEach(btn => btn.addEventListener('click', async () => {
   mouseEnabled = !mouseEnabled;
@@ -914,7 +827,6 @@ function bindPad(padEl) {
   const endPtr = () => { lastPointer = null; if (airTimer) { clearTimeout(airTimer); airTimer = null; } flushAirMouse(); airAcc.x = 0; airAcc.y = 0; };
   padEl.addEventListener('pointerup', endPtr); padEl.addEventListener('pointercancel', endPtr); padEl.addEventListener('pointerleave', endPtr);
 }
-bindPad(q('#airPad'));
 bindPad(q('#drawerPad'));
 
 /* ───────── tools ───────── */
@@ -980,19 +892,6 @@ async function loadApps(force = true) {
   } catch { if (!appsCache.data) grid.innerHTML = '<div class="empty" style="grid-column:1/-1">unreachable</div>'; }
 }
 q('#appsRefresh').addEventListener('click', () => loadApps(true));
-
-/* ───────── segmented toggle ───────── */
-const seg = { dpad: q('#segDpad'), air: q('#segAir'), panelDpad: q('#panel-dpad'), panelAir: q('#panel-air') };
-function showPanel(which) {
-  seg.dpad.classList.toggle('active', which === 'dpad');
-  seg.air.classList.toggle('active', which === 'air');
-  seg.dpad.setAttribute('aria-pressed', which === 'dpad');
-  seg.air.setAttribute('aria-pressed', which === 'air');
-  seg.panelDpad.classList.toggle('show', which === 'dpad');
-  seg.panelAir.classList.toggle('show', which === 'air');
-}
-seg.dpad.addEventListener('click', () => showPanel('dpad'));
-seg.air.addEventListener('click', () => showPanel('air'));
 
 /* ───────── theme toggle ───────── */
 q('#themeToggle').addEventListener('click', () => {
