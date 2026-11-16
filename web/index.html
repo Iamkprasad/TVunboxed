@@ -114,6 +114,16 @@ main{max-width:520px;margin:0 auto;padding:16px 14px 0;display:grid;gap:16px}
 .danger{background:var(--danger);color:var(--danger-ink);border-color:var(--bord)}
 .icon-btn{width:46px;height:46px;padding:0}
 
+/* ── action strips (remote tray) ── */
+.nav-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.nav-strip .btn{min-height:52px}
+.media-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+.media-strip .btn{font-size:0;padding:12px 8px;min-height:52px}
+.ch-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.ch-strip .btn{min-height:50px}
+.btn.icon-only{font-size:0;padding:12px 8px;min-height:52px}
+.btn.icon-only svg{stroke-width:2.2}
+
 /* ── d-pad ───────────────────────────────────────────────────────────── */
 .dpad{display:grid;grid-template-columns:repeat(3,64px);gap:8px;justify-content:center;padding:4px 0}
 .dpad .btn{height:64px;font-size:0;background:var(--muted)}
@@ -378,12 +388,11 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div class="sheet-track" id="sheetTrack">
         <!-- ════════ SIDE A — d-pad remote ════════ -->
         <div class="sheet-page" data-page="0" role="tabpanel">
-          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
-            <button class="btn btn-amber" data-key="26" data-long="true" style="grid-column:span 1" aria-label="Hold power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Hold</button>
-            <button class="btn" data-key="26" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
-            <button class="btn btn-blue" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>Vol −</button>
-            <button class="btn btn-blue" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
-            <button class="btn btn-pink mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+            <button class="btn icon-only" id="powerHoldBtn" aria-label="Power (hold for long-press)" title="Power · hold to power off"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>
+            <button class="btn btn-blue icon-only" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 12H23"/></svg></button>
+            <button class="btn btn-blue icon-only" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg></button>
+            <button class="btn btn-pink icon-only mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
           </div>
           <input id="volLevel" type="range" min="0" max="100" value="30" aria-label="Volume level" style="margin-top:0">
 
@@ -533,6 +542,19 @@ function renderKb() {
   }
 }
 renderKb();
+
+/* ── power button: tap = power, 600ms hold = long-press ── */
+const powerHoldBtn = q('#powerHoldBtn');
+let powerHoldTimer = null, powerHeldLong = false;
+powerHoldBtn.addEventListener('pointerdown', () => {
+  powerHeldLong = false;
+  if (powerHoldTimer) clearTimeout(powerHoldTimer);
+  powerHoldTimer = setTimeout(() => { powerHeldLong = true; post('/api/key', {code: 26, long: true}); }, 600);
+});
+const powerHoldCancel = () => { if (powerHoldTimer) { clearTimeout(powerHoldTimer); powerHoldTimer = null; } };
+powerHoldBtn.addEventListener('pointerup', () => { powerHoldCancel(); if (!powerHeldLong) post('/api/key', {code: 26}); });
+powerHoldBtn.addEventListener('pointercancel', powerHoldCancel);
+powerHoldBtn.addEventListener('pointerleave', powerHoldCancel);
 
 /* ---------- navigation ---------- */
 qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
