@@ -162,6 +162,9 @@ html[data-theme="dark"] .tile.info .t-value{color:var(--info)}
 
 /* ── lists ───────────────────────────────────────────────────────────── */
 .list{display:grid;gap:8px;max-height:46vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+#presetList{max-height:none;overflow-y:visible;overflow-x:hidden}
+.group-head{padding:4px 2px;color:var(--info-ink);font-weight:700}
+html[data-theme="dark"] .group-head{color:var(--info)}
 .row{display:flex;align-items:center;gap:10px;background:var(--muted);border:1px solid var(--line);padding:10px 12px;min-width:0}
 .row:hover{border-color:var(--bord)}
 .row .name{flex:1 1 auto;min-width:0;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px}
@@ -820,7 +823,7 @@ function renderPresetRows() {
   let lastGroup = null;
   for (const ch of PRESETS) {
     if (ch.g !== lastGroup) {
-      const head = document.createElement('div'); head.className = 'cap'; head.style.cssText = 'padding:2px 2px 0;color:var(--info-ink)'; head.textContent = ch.g;
+      const head = document.createElement('div'); head.className = 'cap group-head'; head.textContent = ch.g;
       if (lastGroup !== null) head.style.marginTop = '6px';
       list.appendChild(head); lastGroup = ch.g;
     }
