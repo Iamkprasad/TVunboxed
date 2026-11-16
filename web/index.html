@@ -33,6 +33,7 @@
   --danger:#ffc3c3;--danger-ink:#880023;
   --pink:#ffbfd9;  --pink-ink:#82004f;
   --cyan:#b2f0ed;
+  --y2k-red:#ffc3c3;
   --logo-shell:#d5cdff; --logo-ink:#16182b; --logo-label:#c5e17a;
   --hard:4px 4px 0 rgba(0,0,0,.45); --hard-sm:3px 3px 0 rgba(0,0,0,.45);
   --shadow-focus:0 0 0 2px #70c1ff55;
@@ -53,6 +54,7 @@ html[data-theme="light"]{
   --danger:#ffc3c3;--danger-ink:#880023;
   --pink:#ffbfd9;  --pink-ink:#82004f;
   --cyan:#b2f0ed;
+  --y2k-red:#c9353c;
   --logo-shell:#d5cdff; --logo-ink:#16182b; --logo-label:#c5e17a;
   --hard:4px 4px 0 rgba(45,36,27,.30); --hard-sm:3px 3px 0 rgba(45,36,27,.30);
   --shadow-focus:0 0 0 2px #00345455;
@@ -112,6 +114,9 @@ main{max-width:520px;margin:0 auto;padding:16px 14px 0;display:grid;gap:16px}
 .btn-blue{background:var(--info);color:var(--info-ink);border-color:var(--bord)}
 .btn-pink{background:var(--pink);color:var(--pink-ink);border-color:var(--bord)}
 .danger{background:var(--danger);color:var(--danger-ink);border-color:var(--bord)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+.danger-zone{border-color:var(--y2k-red)}
+.danger-title{color:var(--y2k-red);border-bottom-style:solid}
 .icon-btn{width:46px;height:46px;padding:0}
 
 /* ── action strips (remote tray) ── */
@@ -244,7 +249,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .nav-remote[aria-pressed="true"] svg{stroke:var(--accent-ink)}
 
 /* ── toast ───────────────────────────────────────────────────────────── */
-.toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,8px);opacity:0;z-index:30;background:var(--card);border:2px solid var(--accent);color:var(--text);padding:10px 18px;font-family:var(--font-mono);font-size:.72rem;pointer-events:none;transition:.2s}
+.toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,8px);opacity:0;z-index:60;background:var(--card);border:2px solid var(--accent);color:var(--text);padding:10px 18px;font-family:var(--font-mono);font-size:.72rem;pointer-events:none;transition:.2s;max-width:92vw;text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 
 @media (pointer:coarse){input{font-size:16px !important}}
@@ -315,7 +320,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>IPTV / Live TV</div>
       <div id="playerWrap" class="video-wrap" style="display:none"><video id="player" controls playsinline></video></div>
-      <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Tap <strong>Load Playlist</strong> and pick your own <code>.m3u</code>/<code>.m3u8</code> file (it stays on this device). 2) Tap <strong>Play</strong> to watch on this device. 3) Tap <strong>TV ▶</strong> to send the stream link to the TV (this will open/play on the TV, so do it when it’s okay to change what’s on screen). Direct stream URLs can also be sent from Tools → Throw to TV.</p>
+      <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Load your own <code>.m3u/.m3u8</code> (stays on this device). 2) <strong>TV ▶</strong> sends the channel to the TV — <strong>this is the reliable way to watch</strong> (most Live TV channels are HLS and only play on the TV). 3) <strong>Play</strong> in the page works only for direct media links (e.g. <code>.mp4</code>); HLS streams will likely fail in the browser.</p>
       <label class="drop" id="dropZone"><input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt"><strong>Load Playlist</strong><br><span class="cap" style="letter-spacing:.05em;text-transform:none">your own .m3u · stays on this phone</span></label>
       <div class="list" id="chanList" style="margin-top:12px"></div>
       <button class="btn" id="m3uClear" style="margin-top:12px;width:100%">Clear Playlist</button>
@@ -362,8 +367,8 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <p class="status-line" id="statusLine"></p>
     </div>
 
-    <div class="card" style="border-color:#44131b">
-      <div class="card-title" style="color:var(--y2k-red);border-bottom-style:solid"><svg viewBox="0 0 24 24" style="stroke:var(--y2k-red)"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Danger Zone</div>
+    <div class="card danger-zone">
+      <div class="card-title danger-title"><svg viewBox="0 0 24 24" style="stroke:var(--y2k-red)"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Danger Zone</div>
       <div class="field"><input id="uninstallPkg" placeholder="package to uninstall" autocomplete="off" spellcheck="false"><button class="btn danger" id="uninstallBtn">Delete</button></div>
     </div>
 
@@ -756,14 +761,16 @@ q('#m3uFile').addEventListener('change', async e => {
 q('#m3uClear').addEventListener('click', () => { channels = []; q('#chanList').innerHTML = ''; q('#m3uFile').value = ''; const p = q('#player'); p.removeAttribute('src'); q('#playerWrap').style.display = 'none'; });
 function renderChannels() {
   const list = q('#chanList'); list.innerHTML = '';
-  for (const ch of channels) {
+  const CAP = 500;
+  channels.slice(0, CAP).forEach((ch, i) => {
     const row = document.createElement('div'); row.className = 'row';
     row.innerHTML = `<span class="name"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4"/></svg>${esc(ch.name)}</span><span class="actions"><button>Play</button><button>TV ▶</button></span>`;
     const [playBtn, tvBtn] = row.querySelectorAll('button');
     playBtn.addEventListener('click', () => { const v = q('#player'); v.src = ch.url; q('#playerWrap').style.display = 'block'; v.play().catch(() => toast('Browser cannot play this stream')); });
     tvBtn.addEventListener('click', () => openOnTv(ch.url));
     list.appendChild(row);
-  }
+  });
+  if (channels.length > CAP) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${channels.length - CAP} more channels not shown (showing first ${CAP})`; list.appendChild(more); }
 }
 
 /* ───────── TV storage (WebDAV) ───────── */
