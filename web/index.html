@@ -334,8 +334,18 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
         <input id="filePath" value="/" spellcheck="false" readonly>
         <button class="btn icon-btn" id="fileRefresh" aria-label="Refresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5"/></svg></button>
       </div>
+      <div class="field" style="margin-bottom:10px">
+        <input id="fileSearch" type="search" inputmode="search" placeholder="Search files…" autocomplete="off" spellcheck="false" enterkeyhint="search">
+      </div>
+      <div class="btn-row" id="fileFilters" style="margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn" data-filter="all">All</button>
+        <button class="btn" data-filter="video">Video</button>
+        <button class="btn" data-filter="image">Image</button>
+        <button class="btn" data-filter="audio">Audio</button>
+        <button class="btn" data-filter="docs">Docs</button>
+      </div>
       <div class="list" id="fileList"><div class="empty">Loading…</div></div>
-      <p class="cap" style="margin-top:12px">▸ “TV ▶” pushes the file to the TV screen</p>
+      <p class="cap" style="margin-top:12px">▸ “TV ▶” opens on TV, “TV ⤒” copies to TV Upload (no device content sent unless you choose)</p>
     </div>
   </section>
 
@@ -532,44 +542,78 @@ q('#liveToggle').addEventListener('click', () => {
 });
 
 /* ───────── file share ───────── */
-let curDir = '';
+let curDir = '', fileEntries = [], fileFilter = 'all';
 const fmtSize = n => n == null ? '' : n >= 1073741824 ? (n/1073741824).toFixed(1)+'G' : n >= 1048576 ? (n/1048576).toFixed(1)+'M' : n >= 1024 ? Math.round(n/1024)+'K' : n+'B';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MAX_ROWS = 5000;
 const fileIcon = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg>';
 const dirIcon = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const FILE_TYPES = {
+  video: ['mp4','mkv','avi','mov','webm','ts','m3u8','flv','wmv','3gp','m4v'],
+  image: ['jpg','jpeg','png','gif','webp','bmp','svg','heic','heif'],
+  audio: ['mp3','wav','aac','flac','ogg','m4a','opus','wma'],
+  docs: ['pdf','doc','docx','txt','rtf','xls','xlsx','ppt','pptx','csv','epub','odt','ods']
+};
+function fileCat(name) {
+  const ext = (String(name).split('.').pop() || '').toLowerCase();
+  for (const [k, exts] of Object.entries(FILE_TYPES)) if (exts.includes(ext)) return k;
+  return 'other';
+}
+function matchFile(e, term, filter) {
+  const name = String(e.name || '');
+  if (term && !name.toLowerCase().includes(term)) return false;
+  if (e.type === 'dir') return true; // keep folders visible for navigation
+  if (filter && filter !== 'all') {
+    if (fileCat(name) !== filter) return false;
+  }
+  return true;
+}
 
 async function openOnTv(path) { try { await call('/api/openfile', {path}); toast('Sent to TV'); } catch (e) { toast('Error: ' + e.message); } }
 async function pushToTv(path) { try { await call('/api/savefile', {path}); toast('Copying to TV…'); } catch (e) { toast('Error: ' + e.message); } }
+
+function renderFiles() {
+  const list = q('#fileList'); if (!list) return;
+  const term = (q('#fileSearch') ? q('#fileSearch').value : '').trim().toLowerCase();
+  const filtered = fileEntries.filter(e => matchFile(e, term, fileFilter));
+  list.innerHTML = '';
+  if (!filtered.length) { list.innerHTML = `<div class="empty">${fileEntries.length ? 'No matches' : 'Empty folder'}</div>`; return; }
+  let shown = 0;
+  for (const e of filtered) {
+    if (shown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${filtered.length - shown} more`; list.appendChild(more); break; }
+    shown++;
+    const row = document.createElement('div'); row.className = 'row' + (e.type === 'dir' ? ' dir' : '');
+    if (e.type === 'dir') {
+      row.innerHTML = `<span class="name">${dirIcon}${esc(e.name)}</span>`;
+      row.querySelector('.name').addEventListener('click', () => loadFiles(curDir ? curDir + '/' + e.name : e.name));
+    } else {
+      const rel = (curDir ? curDir + '/' : '') + e.name;
+      row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button data-act="open" title="Open on TV">TV ▶</button><button data-act="push" title="Copy to TV Upload">TV ⤒</button></span>`;
+      row.querySelectorAll('button').forEach(b => b.addEventListener('click',
+        () => b.dataset.act === 'push' ? pushToTv(rel) : openOnTv(rel)));
+    }
+    list.appendChild(row);
+  }
+}
 
 async function loadFiles(dir) {
   const list = q('#fileList'); list.innerHTML = '<div class="empty">Loading…</div>';
   try {
     const d = await (await fetch('/api/files?dir=' + encodeURIComponent(dir))).json();
-    if (!d.ok) { list.innerHTML = `<div class="empty">${esc(d.error || 'share unavailable')}</div>`; return; }
+    if (!d.ok) { list.innerHTML = `<div class="empty">${esc(d.error || 'share unavailable')}</div>`; fileEntries = []; return; }
     curDir = d.dir; q('#filePath').value = '/' + d.dir; q('#shareHint').textContent = 'active';
-    list.innerHTML = '';
-    if (!d.entries.length) list.innerHTML = '<div class="empty">Empty folder</div>';
-    let shown = 0;
-    for (const e of d.entries) {
-      if (shown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - shown} more (very large folder)`; list.appendChild(more); break; }
-      shown++;
-      const row = document.createElement('div'); row.className = 'row' + (e.type === 'dir' ? ' dir' : '');
-      if (e.type === 'dir') {
-        row.innerHTML = `<span class="name">${dirIcon}${esc(e.name)}</span>`;
-        row.querySelector('.name').addEventListener('click', () => loadFiles(curDir ? curDir + '/' + e.name : e.name));
-      } else {
-        const rel = (curDir ? curDir + '/' : '') + e.name;
-        row.innerHTML = `<span class="name">${fileIcon}${esc(e.name)}</span><span class="meta">${fmtSize(e.size)}</span><span class="actions"><button data-act="open" title="Open on TV">TV ▶</button><button data-act="push" title="Copy into the TV Upload folder">TV ⤒</button></span>`;
-        row.querySelectorAll('button').forEach(b => b.addEventListener('click',
-          () => b.dataset.act === 'push' ? pushToTv(rel) : openOnTv(rel)));
-      }
-      list.appendChild(row);
-    }
-  } catch { list.innerHTML = '<div class="empty">Share unreachable</div>'; q('#shareHint').textContent = 'unavailable'; }
+    fileEntries = d.entries || [];
+    renderFiles();
+  } catch { list.innerHTML = '<div class="empty">Share unreachable</div>'; q('#shareHint').textContent = 'unavailable'; fileEntries = []; }
 }
 q('#fileUp').addEventListener('click', () => loadFiles(curDir.split('/').slice(0, -1).join('/')));
 q('#fileRefresh').addEventListener('click', () => loadFiles(curDir));
+q('#fileSearch').addEventListener('input', () => renderFiles());
+document.querySelectorAll('#fileFilters [data-filter]').forEach(btn => {
+  const setActive = () => document.querySelectorAll('#fileFilters [data-filter]').forEach(b => b.classList.toggle('btn-amber', b.dataset.filter === fileFilter));
+  btn.addEventListener('click', () => { fileFilter = btn.dataset.filter; setActive(); renderFiles(); });
+  setActive();
+});
 
 /* ───────── IPTV ───────── */
 let channels = [];
