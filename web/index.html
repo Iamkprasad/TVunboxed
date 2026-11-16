@@ -317,10 +317,17 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div class="app-grid" id="appGrid"><div class="empty" style="grid-column:1/-1">tap refresh to load</div></div>
     </div>
 
+    <div id="playerWrap" class="video-wrap" style="display:none"><video id="player" controls playsinline></video></div>
+
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>Free channels <span class="hint">presets</span></div>
+      <p class="cap" style="margin-bottom:10px">▸ free/public streams probed working on 2026‑11‑16 · availability varies by region/network · <strong>TV ▶</strong> plays on the TV — tap only when it’s okay to play there</p>
+      <div class="list" id="presetList"></div>
+    </div>
+
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>IPTV / Live TV</div>
-      <div id="playerWrap" class="video-wrap" style="display:none"><video id="player" controls playsinline></video></div>
-      <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Load your own <code>.m3u/.m3u8</code> (stays on this device). 2) <strong>TV ▶</strong> sends the channel to the TV — <strong>this is the reliable way to watch</strong> (most Live TV channels are HLS and only play on the TV). 3) <strong>Play</strong> in the page works only for direct media links (e.g. <code>.mp4</code>); HLS streams will likely fail in the browser.</p>
+      <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Load your own <code>.m3u/.m3u8</code> (stays on this device). 2) Tap <strong>Play</strong> for in-page playback (HLS supported via built-in player). 3) Tap <strong>TV ▶</strong> to play a channel on the TV — tap only when it’s okay to change what’s on screen.</p>
       <label class="drop" id="dropZone"><input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt"><strong>Load Playlist</strong><br><span class="cap" style="letter-spacing:.05em;text-transform:none">your own .m3u · stays on this phone</span></label>
       <div class="list" id="chanList" style="margin-top:12px"></div>
       <button class="btn" id="m3uClear" style="margin-top:12px;width:100%">Clear Playlist</button>
@@ -457,6 +464,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 
 <div class="toast" id="toast" role="status"></div>
 
+<script src="hls.min.js"></script>
 <script>
 const q = s => document.querySelector(s);
 const qa = s => [...document.querySelectorAll(s)];
@@ -745,6 +753,66 @@ document.querySelectorAll('#fileFilters [data-filter]').forEach(btn => {
   setActive();
 });
 
+/* ───────── presets (free/public channels, probed 2026-11-16) ───────── */
+const PRESETS = [
+  {g: 'News',   n: 'Al Jazeera English', u: 'https://live-hls-apps-aje-fa.getaj.net/AJE/index.m3u8'},
+  {g: 'News',   n: 'DW English',         u: 'https://amg01644-amg01644c1-amgplt0343.playout.now3.amagi.tv/ts-eu-w1-n2/playlist/amg01644-amg01644c1-amgplt0343/playlist.m3u8'},
+  {g: 'News',   n: 'CGTN',               u: 'https://amg00405-rakutentv-cgtn-rakuten-i9tar.amagi.tv/master.m3u8'},
+  {g: 'News',   n: 'DD News',            u: 'https://mumbai-edge.smartplaytv.in/DDNews/index.m3u8'},
+  {g: 'India',  n: 'DD Kisan',           u: 'https://mumbai-edge.smartplaytv.in/DDKisan/index.m3u8'},
+  {g: 'India',  n: 'DD Sports',          u: 'https://d3qs3d2rkhfqrt.cloudfront.net/out/v1/b17adfe543354fdd8d189b110617cddd/index.m3u8'},
+  {g: 'India',  n: 'Sansad TV (Lok Sabha)', u: 'https://d2lk5u59tns74c.cloudfront.net/out/v1/fff8f20221d5456e8922e689d71dedc3/index.m3u8'},
+  {g: 'World',  n: 'Bloomberg Originals', u: 'https://bloomberg.com/media-manifest/streams/qt.m3u8'},
+  {g: 'World',  n: 'Pluto TV — 00s Replay', u: 'https://jmp2.uk/plu-62ba60f059624e000781c436.m3u8'},
+  {g: 'World',  n: 'Red Bull TV',        u: 'https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8'},
+  {g: 'World',  n: '1HD Music Television', u: 'http://176.118.197.101/1HD/index.m3u8'},
+  {g: 'World',  n: '1KZN TV',            u: 'https://cdn.freevisiontv.co.za/sttv/smil:1kzn.stream.smil/playlist.m3u8'},
+];
+
+/* play any stream URL in the page (hls.js for HLS, native otherwise) */
+let hlsInstance = null;
+function playInPage(url) {
+  const video = q('#player');
+  q('#playerWrap').style.display = 'block';
+  if (hlsInstance) { try { hlsInstance.destroy(); } catch {} hlsInstance = null; }
+  const isHls = /\.m3u8(\?|#|$)/i.test(url) || /mpegurl/i.test(url);
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url; video.play().catch(() => toast('Browser cannot play this stream'));
+    return;
+  }
+  if (isHls && window.Hls && Hls.isSupported()) {
+    const hls = new Hls({enableWorker: true});
+    hlsInstance = hls;
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => toast('Browser cannot play this stream')));
+    hls.on(Hls.Events.ERROR, (_evt, data) => {
+      if (data && data.fatal) { toast('Stream failed — try TV ▶'); try { hls.destroy(); } catch {} hlsInstance = null; }
+    });
+    return;
+  }
+  video.src = url; video.play().catch(() => toast('Browser cannot play this stream'));
+}
+
+function renderPresetRows() {
+  const list = q('#presetList'); if (!list) return; list.innerHTML = '';
+  let lastGroup = null;
+  for (const ch of PRESETS) {
+    if (ch.g !== lastGroup) {
+      const head = document.createElement('div'); head.className = 'cap'; head.style.cssText = 'padding:2px 2px 0;color:var(--info-ink)'; head.textContent = ch.g;
+      if (lastGroup !== null) head.style.marginTop = '6px';
+      list.appendChild(head); lastGroup = ch.g;
+    }
+    const row = document.createElement('div'); row.className = 'row';
+    row.innerHTML = `<span class="name"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4"/></svg>${esc(ch.n)}</span><span class="actions"><button>Play</button><button>TV ▶</button></span>`;
+    const [playBtn, tvBtn] = row.querySelectorAll('button');
+    playBtn.addEventListener('click', () => playInPage(ch.u));
+    tvBtn.addEventListener('click', () => openOnTv(ch.u));
+    list.appendChild(row);
+  }
+}
+renderPresetRows();
+
 /* ───────── IPTV ───────── */
 let channels = [];
 q('#m3uFile').addEventListener('change', async e => {
@@ -766,7 +834,7 @@ function renderChannels() {
     const row = document.createElement('div'); row.className = 'row';
     row.innerHTML = `<span class="name"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4"/></svg>${esc(ch.name)}</span><span class="actions"><button>Play</button><button>TV ▶</button></span>`;
     const [playBtn, tvBtn] = row.querySelectorAll('button');
-    playBtn.addEventListener('click', () => { const v = q('#player'); v.src = ch.url; q('#playerWrap').style.display = 'block'; v.play().catch(() => toast('Browser cannot play this stream')); });
+    playBtn.addEventListener('click', () => playInPage(ch.url));
     tvBtn.addEventListener('click', () => openOnTv(ch.url));
     list.appendChild(row);
   });

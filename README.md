@@ -72,3 +72,5 @@ python3 -m unittest discover tests -v
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+Third-party components vendored in `web/`: [`hls.js`](https://github.com/video-dev/hls.js) (Apache‑2.0), reproduced via CDN download of the official build (`web/hls.min.js`). "Free channels" listed in the UI are free/public streams; their availability and terms are separate from this project.
