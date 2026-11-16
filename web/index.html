@@ -220,20 +220,25 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .nav-item.active{color:var(--accent-ink);background:var(--accent);box-shadow:var(--hard-sm)}
 .nav-item.active svg{stroke:var(--accent-ink)}
 
-/* ── drawer (floating remote, any tab) ───────────────────────────────── */
-.drawer-fab{position:fixed;right:0;top:44%;z-index:34;height:52px;width:46px;display:grid;place-items:center;background:var(--accent);border:2px solid var(--bord);border-right:0;box-shadow:var(--hard-sm);cursor:pointer;color:var(--accent-ink)}
-.drawer-fab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2}
+/* ── sheet (floating remote, Android-style bottom drawer) ────────────── */
+.drawer-fab{position:fixed;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:34;width:56px;height:56px;border-radius:18px;display:grid;place-items:center;background:var(--accent);border:2px solid var(--bord);box-shadow:var(--hard-sm);cursor:pointer;color:var(--accent-ink)}
+.drawer-fab svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square}
 .drawer-fab:active{transform:scale(.94)}
-.drawer-backdrop{position:fixed;inset:0;z-index:44;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .22s}
+.drawer-fab.open{opacity:0;pointer-events:none}
+.drawer-backdrop{position:fixed;inset:0;z-index:44;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .22s}
 .drawer-backdrop.open{opacity:1;pointer-events:auto}
-.drawer{position:fixed;top:0;right:0;bottom:0;z-index:46;width:min(320px,92vw);background:var(--card);border-left:2px solid var(--bord);box-shadow:var(--hard);transform:translateX(100%);transition:transform .26s ease;display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
-.drawer.open{transform:translateX(0);visibility:visible;pointer-events:auto}
-.drawer-head{display:flex;align-items:center;gap:9px;padding:14px 12px 12px;border-bottom:1px dashed var(--line);font-family:var(--font-mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
-.drawer-head .drawer-close{margin-left:auto;display:grid;place-items:center;width:40px;height:40px;background:var(--muted);border:2px solid var(--bord);cursor:pointer;box-shadow:var(--hard-sm);color:var(--text)}
+.drawer{position:fixed;left:0;right:0;bottom:0;z-index:46;background:var(--card);border:2px solid var(--bord);border-bottom:0;border-radius:22px 22px 0 0;box-shadow:var(--hard);transform:translateY(102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:88vh;display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
+.drawer.open{transform:translateY(0);visibility:visible;pointer-events:auto}
+.drawer-handle{display:grid;place-items:center;padding:10px 0 2px}
+.drawer-handle::before{content:"";width:44px;height:5px;border-radius:99px;background:var(--bord);opacity:.6}
+.drawer-head{display:flex;align-items:center;gap:9px;padding:8px 18px 12px;border-bottom:1px dashed var(--line);font-family:var(--font-mono);font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+.drawer-head .drawer-close{margin-left:auto;display:grid;place-items:center;width:38px;height:38px;background:var(--muted);border:2px solid var(--bord);border-radius:12px;cursor:pointer;color:var(--text)}
 .drawer-head .drawer-close svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.4}
-.drawer-body{overflow-y:auto;padding:12px;display:grid;gap:12px;scrollbar-width:thin}
-.drawer .dpad{grid-template-columns:repeat(3,52px);gap:6px}
-.pad-mini{height:150px;min-height:120px}
+.drawer-body{overflow-y:auto;padding:14px 16px calc(18px + env(safe-area-inset-bottom));display:grid;gap:14px;scrollbar-width:thin;max-width:520px;width:100%;margin:0 auto}
+.drawer .dpad{grid-template-columns:repeat(3,64px);gap:8px}
+.drawer .dpad .btn{min-height:60px}
+.pad-mini{height:160px;min-height:140px}
+.sheet-sep{height:1px;background:var(--line);opacity:.7}
 @media (prefers-reduced-motion: reduce){.drawer{transition:none}.drawer-backdrop{transition:none}}
 
 /* ── toast ───────────────────────────────────────────────────────────── */
@@ -435,17 +440,17 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 <!-- ════════ floating remote drawer (all tabs) ════════ -->
 <button class="drawer-fab" id="drawerFab" aria-label="Toggle remote drawer" title="Remote"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><circle cx="12" cy="7" r="1.4"/><path d="M11.2 15h1.6"/></svg></button>
 <div class="drawer-backdrop" id="drawerBackdrop"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-label="Remote and mouse drawer" aria-hidden="true">
+<aside class="drawer" id="drawer" role="dialog" aria-label="Remote sheet" aria-hidden="true">
+  <div class="drawer-handle" aria-hidden="true"></div>
   <div class="drawer-head">Remote<button class="drawer-close" id="drawerClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="drawer-body">
-    <div class="hero-strip" style="grid-template-columns:1fr 1fr">
-      <button class="btn" data-key="26"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
-      <button class="btn btn-pink mute-toggle"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+      <button class="btn" data-key="26" aria-label="Power"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg>Power</button>
+      <button class="btn btn-blue" data-key="25" aria-label="Volume down"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>Vol −</button>
+      <button class="btn btn-blue" data-key="24" aria-label="Volume up"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9v6M20 7v10M23 12h-6"/></svg>Vol +</button>
+      <button class="btn btn-pink mute-toggle" aria-label="Mute"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>Mute</button>
     </div>
-    <div class="vol-strip" style="margin-top:0">
-      <button class="btn btn-blue" data-key="25">Vol −</button>
-      <button class="btn btn-blue" data-key="24">Vol +</button>
-    </div>
+
     <div class="dpad">
       <button class="btn spacer" tabindex="-1"></button>
       <button class="btn" data-key="19" aria-label="Up"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
@@ -457,11 +462,13 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <button class="btn" data-key="20" aria-label="Down"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
       <button class="btn spacer" tabindex="-1"></button>
     </div>
+
     <div class="nav-strip" style="margin-top:0;grid-template-columns:repeat(3,1fr)">
       <button class="btn" data-key="4"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Back</button>
       <button class="btn" data-key="3"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>Home</button>
       <button class="btn" data-key="82"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Menu</button>
     </div>
+
     <div class="media-strip" style="margin-top:0;grid-template-columns:repeat(4,1fr)">
       <button class="btn" data-key="88" aria-label="Rewind"><svg viewBox="0 0 24 24"><path d="M11 6l-7 6 7 6z"/><path d="M20 6l-7 6 7 6z"/></svg></button>
       <button class="btn btn-green" data-key="85" aria-label="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
@@ -469,9 +476,12 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <button class="btn" data-key="86" aria-label="Stop"><svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="0"/></svg></button>
     </div>
     <div class="ch-strip" style="margin-top:0">
-      <button class="btn" data-key="166">CH −</button>
-      <button class="btn" data-key="167">CH +</button>
+      <button class="btn" data-key="166"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg>CH −</button>
+      <button class="btn" data-key="167"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>CH +</button>
     </div>
+
+    <div class="sheet-sep" aria-hidden="true"></div>
+
     <div class="field" style="margin:0">
       <button class="btn btn-blue mouse-toggle" style="flex:1">Enable Pointer</button>
       <button class="btn airclick-btn" style="flex:1"><svg viewBox="0 0 24 24"><path d="M9 11.5V5a2 2 0 0 1 4 0v6.5l3.5.8a2 2 0 0 1 1.4 2.3L17 19a2 2 0 0 1-2 1.7H11a2 2 0 0 1-1.7-.9L7 16.6a2 2 0 0 1 .4-2.4z"/></svg>Click</button>
