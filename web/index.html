@@ -362,14 +362,19 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
         <input id="davPath" value="/" spellcheck="false">
         <button class="btn icon-btn" id="davGo" aria-label="Go"><svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button>
       </div>
+      <div class="btn-row" style="margin-bottom:8px">
+        <button class="btn" data-dav-jump="/sdcard/">sdcard</button>
+        <button class="btn" data-dav-jump="/sdcard/Upload/">Upload</button>
+        <button class="btn" data-dav-jump="/sdcard/Download/">Download</button>
+      </div>
       <div class="btn-row" style="margin-bottom:10px">
         <button class="btn btn-green" id="davMkdir"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Folder</button>
         <label class="btn btn-blue" style="text-align:center;cursor:pointer"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>Upload<input id="davUpload" type="file" hidden></label>
         <button class="btn" id="davRefresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v5h-5"/></svg></button>
       </div>
       <p class="status-line" id="davQuota"></p>
-      <div class="list" id="davList"><div class="empty">Enter a path &amp; press Go</div></div>
-      <p class="cap" style="margin-top:12px">▸ raw WebDAV on the TV · unauthenticated · trusted Wi‑Fi only</p>
+      <div class="list" id="davList"><div class="empty">Enter a path &amp; press Go (try <code>/sdcard/Upload/</code> for uploads)</div></div>
+      <p class="cap" style="margin-top:12px">▸ uploads work only in writable TV folders (e.g. <code>/sdcard/Upload/</code>, <code>/sdcard/Download/</code>) · root <code>/</code> is usually read-only</p>
     </div>
   </section>
 
@@ -627,8 +632,10 @@ q('#davGo').addEventListener('click', () => davLoad(q('#davPath').value));
 q('#davUp').addEventListener('click', () => { const p = davDir.replace(/\/+$/, '').split('/').slice(0, -1).join('/'); davLoad(p || '/'); });
 q('#davRefresh').addEventListener('click', () => davLoad(davDir));
 q('#davMkdir').addEventListener('click', async () => { const name = prompt('New folder name:'); if (!name) return; try { await call('/api/dav/mkcol', {path: (davDir.endsWith('/') ? davDir : davDir + '/') + name}); davLoad(davDir); } catch (e) { toast('mkdir failed: ' + e.message); } });
+document.querySelectorAll('[data-dav-jump]').forEach(btn => btn.addEventListener('click', () => { q('#davPath').value = btn.dataset.davJump; davLoad(btn.dataset.davJump); }));
 q('#davUpload').addEventListener('change', async e => {
   const file = e.target.files[0]; if (!file) return;
+  if (!davDir || davDir === '/') { toast('Choose a writable folder first (e.g. /sdcard/Upload/)'); e.target.value = ''; return; }
   const dest = (davDir.endsWith('/') ? davDir : davDir + '/') + file.name;
   try {
     const res = await fetch('/api/dav/put', {method: 'POST', headers: {'X-File-Path': dest.replace(/^\/+/, '')}, body: file});
