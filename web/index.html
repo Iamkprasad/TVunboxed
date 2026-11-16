@@ -639,23 +639,38 @@ q('#davUpload').addEventListener('change', async e => {
 });
 
 /* ───────── air mouse ───────── */
-let mouseEnabled = false, lastPointer = null;
+let mouseEnabled = false, lastPointer = null, airAcc = {x: 0, y: 0}, airTimer = null, airSending = false;
+const AIR_INTERVAL = 40; // ms between sends
+const AIR_SENS = 0.45;   // sensitivity (lower = slower/smoother)
+function flushAirMouse() {
+  if (airSending) return;
+  const dx = airAcc.x, dy = airAcc.y;
+  if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+  airAcc.x = 0; airAcc.y = 0;
+  airSending = true;
+  call('/api/airmouse', {dx: +dx.toFixed(2), dy: +dy.toFixed(2)})
+    .catch(() => {})
+    .finally(() => { airSending = false; if (Math.abs(airAcc.x) + Math.abs(airAcc.y) >= 0.5) flushAirMouse(); });
+}
 q('#mouseModeBtn').addEventListener('click', async () => {
   mouseEnabled = !mouseEnabled;
   q('#mouseHint').textContent = mouseEnabled ? 'on' : 'off';
   q('#mouseModeBtn').textContent = mouseEnabled ? 'Disable Pointer' : 'Enable Pointer';
+  airAcc.x = 0; airAcc.y = 0;
   try { await call('/api/mouse-mode', {on: mouseEnabled}); } catch (e) { toast('Error: ' + e.message); }
 });
 const airPad = q('#airPad');
 airPad.addEventListener('pointerdown', e => { airPad.setPointerCapture(e.pointerId); lastPointer = {x: e.clientX, y: e.clientY}; });
 airPad.addEventListener('pointermove', e => {
   if (!lastPointer || !mouseEnabled) return;
-  const dx = e.clientX - lastPointer.x, dy = e.clientY - lastPointer.y;
-  if (Math.abs(dx) + Math.abs(dy) < 4) return;
+  const dx = (e.clientX - lastPointer.x) * AIR_SENS;
+  const dy = (e.clientY - lastPointer.y) * AIR_SENS;
   lastPointer = {x: e.clientX, y: e.clientY};
-  call('/api/airmouse', {dx, dy}).catch(() => {});
+  if (dx === 0 && dy === 0) return;
+  airAcc.x += dx; airAcc.y += dy;
+  if (!airTimer) airTimer = setTimeout(() => { airTimer = null; flushAirMouse(); }, AIR_INTERVAL);
 });
-const endPtr = () => { lastPointer = null; };
+const endPtr = () => { lastPointer = null; if (airTimer) { clearTimeout(airTimer); airTimer = null; } flushAirMouse(); airAcc.x = 0; airAcc.y = 0; };
 airPad.addEventListener('pointerup', endPtr); airPad.addEventListener('pointercancel', endPtr); airPad.addEventListener('pointerleave', endPtr);
 
 /* ───────── tools ───────── */

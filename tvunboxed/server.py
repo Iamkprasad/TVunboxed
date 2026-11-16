@@ -1,8 +1,12 @@
 """HTTP bridge: serves the remote UI and translates REST calls to the
 TCP control channel. Standard library only."""
 
+import datetime
 import json
 import os
+import threading
+import time
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -16,8 +20,29 @@ from .tvdav import WebDavClient
 from .tvapps import fetch_app_list
 
 import socket as _socket
-import time as _time
-_STARTED = _time.monotonic()
+_STARTED = time.monotonic()
+_LOG_LOCK = threading.Lock()
+
+
+def _log_write(server, entry):
+    line = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
+    path = getattr(server, "log_path", None)
+    if not path:
+        return
+    try:
+        with _LOG_LOCK:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+    except OSError:
+        pass
+
+
+def log_event(server, kind, **fields):
+    entry = {"ts": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+             "kind": kind}
+    entry.update(fields)
+    _log_write(server, entry)
+    return entry
 
 
 WEB_ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web"))
@@ -48,7 +73,16 @@ class RemoteHandler(BaseHTTPRequestHandler):
 
     # -- reads -----------------------------------------------------------------
     def do_GET(self):
+        t0 = time.monotonic()
         route = self.path.split("?", 1)[0]
+        try:
+            self._do_GET_route(route)
+        finally:
+            if route.startswith("/api/"):
+                log_event(self.server, "http", method="GET", path=self.path,
+                          ms=round((time.monotonic() - t0) * 1000, 2))
+
+    def _do_GET_route(self, route):
         if route == "/api/features":
             try:
                 reply = self.server.session.send(protocol.identify_message(), wait_reply=True)
@@ -91,6 +125,15 @@ class RemoteHandler(BaseHTTPRequestHandler):
 
     # -- writes ----------------------------------------------------------------
     def do_POST(self):
+        t0 = time.monotonic()
+        try:
+            self._do_POST_route()
+        finally:
+            if self.path.startswith("/api/"):
+                log_event(self.server, "http", method="POST", path=self.path,
+                          ms=round((time.monotonic() - t0) * 1000, 2))
+
+    def _do_POST_route(self):
         if self.path == "/api/dav/put":
             return self._cmd_dav_put()
 
@@ -425,21 +468,27 @@ class RemoteHandler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         import sys
-        sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
+        msg = fmt % args
+        sys.stderr.write("%s - %s\n" % (self.address_string(), msg))
+        log_event(self.server, "access", client=self.address_string(), message=msg)
 
 
 def run(session_host, tv_port=protocol.CONTROL_PORT_DEFAULT, bind="127.0.0.1",
-        http_port=8080, share_dir=None, tv_webdav_port=8000):
+        http_port=8080, share_dir=None, tv_webdav_port=8000, log_path="tvunboxed.log"):
     if share_dir and not os.path.isdir(share_dir):
         raise SystemExit(f"share directory not found: {share_dir}")
     httpd = ThreadingHTTPServer((bind, http_port), RemoteHandler)
     httpd.session = Session(session_host, tv_port, http_port=http_port)
     httpd.share = share_dir
     httpd.tvdav = WebDavClient(session_host, tv_webdav_port, "/")
+    httpd.log_path = log_path
     print(f"TVunboxed http://{bind}:{http_port}/  ->  TV {session_host}:{tv_port}")
     print(f"tv webdav: {session_host}:{tv_webdav_port}  (unauthenticated, read/write — trusted Wi-Fi only)")
     if share_dir:
         print(f"file share: {share_dir}  (visible on the LAN as /files/)")
+    if log_path:
+        print(f"log file: {log_path}")
+        log_event(httpd, "start", tv=f"{session_host}:{tv_port}", bind=bind, http_port=http_port)
     try:
         httpd.serve_forever()
     finally:
