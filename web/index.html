@@ -167,15 +167,15 @@ input[type=range]::-moz-range-thumb{width:22px;height:26px;border-radius:0;backg
 html[data-theme="dark"] .tile.info .t-value{color:var(--info)}
 
 /* ── lists ───────────────────────────────────────────────────────────── */
-.list{display:grid;gap:8px;max-height:46vh;overflow-y:auto;scrollbar-width:thin}
-.row{display:flex;align-items:center;gap:10px;background:var(--muted);border:1px solid var(--line);padding:10px 12px}
+.list{display:grid;gap:8px;max-height:46vh;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+.row{display:flex;align-items:center;gap:10px;background:var(--muted);border:1px solid var(--line);padding:10px 12px;min-width:0}
 .row:hover{border-color:var(--bord)}
-.row .name{flex:1;min-width:0;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px}
+.row .name{flex:1 1 auto;min-width:0;font-size:.84rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:9px}
 .row .name svg{flex:0 0 auto;width:17px;height:17px;stroke:var(--info-ink);fill:none;stroke-width:2}
 html[data-theme="dark"] .row .name svg{stroke:var(--info)}
 .row .dir .name{color:var(--accent);cursor:pointer}
-.row .meta{font-family:var(--font-mono);font-size:.64rem;color:var(--dim)}
-.row .actions{display:flex;gap:6px}
+.row .meta{flex:0 0 auto;font-family:var(--font-mono);font-size:.64rem;color:var(--dim);white-space:nowrap}
+.row .actions{display:flex;gap:6px;flex:0 0 auto}
 .row button{font-family:var(--font-mono);font-size:.64rem;letter-spacing:.06em;color:var(--accent);background:transparent;border:1px solid var(--bord);padding:7px 9px;cursor:pointer;text-transform:uppercase}
 .row button:active{background:var(--accent);color:var(--accent-ink)}
 .row button.red{color:var(--danger-ink);border-color:var(--danger-ink)}
@@ -535,7 +535,7 @@ q('#liveToggle').addEventListener('click', () => {
 let curDir = '';
 const fmtSize = n => n == null ? '' : n >= 1073741824 ? (n/1073741824).toFixed(1)+'G' : n >= 1048576 ? (n/1048576).toFixed(1)+'M' : n >= 1024 ? Math.round(n/1024)+'K' : n+'B';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const MAX_ROWS = 120;
+const MAX_ROWS = 5000;
 const fileIcon = '<svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/></svg>';
 const dirIcon = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
 
@@ -552,7 +552,7 @@ async function loadFiles(dir) {
     if (!d.entries.length) list.innerHTML = '<div class="empty">Empty folder</div>';
     let shown = 0;
     for (const e of d.entries) {
-      if (shown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - shown} more — refine folder`; list.appendChild(more); break; }
+      if (shown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - shown} more (very large folder)`; list.appendChild(more); break; }
       shown++;
       const row = document.createElement('div'); row.className = 'row' + (e.type === 'dir' ? ' dir' : '');
       if (e.type === 'dir') {
@@ -611,7 +611,7 @@ async function davLoad(dir) {
     if (!d.entries.length) list.innerHTML = '<div class="empty">Empty folder</div>';
     let davShown = 0;
     for (const e of d.entries) {
-      if (davShown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - davShown} more`; list.appendChild(more); break; }
+      if (davShown >= MAX_ROWS) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${d.entries.length - davShown} more (very large folder)`; list.appendChild(more); break; }
       davShown++;
       const path = (davDir.endsWith('/') ? davDir : davDir + '/') + e.name;
       const row = document.createElement('div'); row.className = 'row' + (e.dir ? ' dir' : '');
@@ -646,18 +646,15 @@ q('#davUpload').addEventListener('change', async e => {
 });
 
 /* ───────── air mouse ───────── */
-let mouseEnabled = false, lastPointer = null, airAcc = {x: 0, y: 0}, airTimer = null, airSending = false;
-const AIR_INTERVAL = 40; // ms between sends
-const AIR_SENS = 0.45;   // sensitivity (lower = slower/smoother)
+let mouseEnabled = false, lastPointer = null, airAcc = {x: 0, y: 0}, airTimer = null;
+const AIR_INTERVAL = 30; // ms between sends
+const AIR_SENS = 0.5;    // sensitivity (lower = slower)
 function flushAirMouse() {
-  if (airSending) return;
   const dx = airAcc.x, dy = airAcc.y;
   if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
   airAcc.x = 0; airAcc.y = 0;
-  airSending = true;
-  call('/api/airmouse', {dx: +dx.toFixed(2), dy: +dy.toFixed(2)})
-    .catch(() => {})
-    .finally(() => { airSending = false; if (Math.abs(airAcc.x) + Math.abs(airAcc.y) >= 0.5) flushAirMouse(); });
+  fetch('/api/airmouse', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({dx: +dx.toFixed(2), dy: +dy.toFixed(2)}), keepalive: true}).catch(() => {});
 }
 q('#mouseModeBtn').addEventListener('click', async () => {
   mouseEnabled = !mouseEnabled;
