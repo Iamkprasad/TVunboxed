@@ -75,7 +75,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
     # -- reads -----------------------------------------------------------------
     def do_GET(self):
         t0 = time.monotonic()
-        route = self.path.split("?", 1)[0]
+        route = re.sub(r"/{2,}", "/", self.path.split("?", 1)[0])
         try:
             self._do_GET_route(route)
         finally:
@@ -305,7 +305,9 @@ class RemoteHandler(BaseHTTPRequestHandler):
         try:
             self._dav().put("/" + rel, data)
         except (ConnectionError, OSError) as exc:
+            log_event(self.server, "dav_put", ok=False, path=rel, error=str(exc))
             return self._send_json({"ok": False, "error": f"tv webdav unavailable: {exc}"}, 502)
+        log_event(self.server, "dav_put", ok=True, path=rel, bytes=length)
         return self._send_json({"ok": True})
 
     def _cmd_dav_delete(self, body):
@@ -426,12 +428,17 @@ class RemoteHandler(BaseHTTPRequestHandler):
         target = str(body.get("path", "")).strip()
         if target.startswith(("http://", "https://")) or target.startswith("/"):
             # absolute path: TV-side location (after a DAV upload) — pass through
+            log_event(self.server, "openfile", target=target)
             self.server.session.send(open_file_message(target))
             return
-        self.server.session.send(open_file_message(self._share_target(body)))
+        msg_target = self._share_target(body)
+        log_event(self.server, "openfile", target=msg_target)
+        self.server.session.send(open_file_message(msg_target))
 
     def _cmd_savefile(self, body):
-        self.server.session.send(save_file_message(self._share_target(body)))
+        msg_target = self._share_target(body)
+        log_event(self.server, "savefile", target=msg_target)
+        self.server.session.send(save_file_message(msg_target))
 
     def _cmd_list_files(self):
         if self.server.share is None:

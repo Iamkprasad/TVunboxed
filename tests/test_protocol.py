@@ -237,6 +237,15 @@ class ShareTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             share.normalize_relpath("a/../../b")
 
+    def test_open_file_url_fixups(self):
+        from tvunboxed import share
+        # protocol-relative URL is promoted to https:// (TV treats it as host-relative)
+        self.assertIn("https://cdn.example.com/v.mp4", share.open_file_message("//cdn.example.com/v.mp4"))
+        # bare host + path (no scheme) is promoted too (Big Buck Bunny log case)
+        self.assertIn("https://cdn.example.com/v.mp4", share.open_file_message("cdn.example.com/v.mp4"))
+        # local share paths are still encode_path'd
+        self.assertIn("x%20y.mp4", share.open_file_message("x y.mp4"))
+
     def test_list_share(self):
         import os, tempfile
         from tvunboxed import share

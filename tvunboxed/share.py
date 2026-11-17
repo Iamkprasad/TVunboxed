@@ -1,7 +1,25 @@
 """Build file-share payloads for the TV's 'open on TV' flow."""
 
 import mimetypes
+import re
 from urllib.parse import quote, unquote
+
+_BARE_HOST = re.compile(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}(/|$)")
+
+def _normalize_target(target: str) -> str:
+    """Fix common user URL mistakes: strip duplicate slashes and add a scheme
+    when the TV would otherwise treat a protocol-relative or bare-host path as
+    relative to our bridge."""
+    target = target.strip()
+    if target.startswith("//"):
+        return "https:" + target
+    if target.startswith(("http://", "https://")):
+        return target
+    if "\r" in target or "\n" in target:
+        return target
+    if _BARE_HOST.match(target):
+        return "https://" + target
+    return target
 
 
 def encode_path(relpath: str) -> str:
@@ -14,6 +32,7 @@ def open_file_message(target: str, mime: str | None = None) -> str:
     """'Openfile' tells the TV to fetch /<target> from the HTTP origin named
     in the session auth handshake (our bridge). Absolute http(s) URLs are
     passed through untouched (used for streams)."""
+    target = _normalize_target(target)
     if target.startswith(("http://", "https://")):
         if mime is None:
             mime = mimetypes.guess_type(target)[0] or "video/mp4"
@@ -26,6 +45,11 @@ def open_file_message(target: str, mime: str | None = None) -> str:
 def save_file_message(target: str, mime: str | None = None) -> str:
     """'Savefile' makes the TV download /<target> from our bridge and store it
     under its own Upload folder (copy, not open)."""
+    target = _normalize_target(target)
+    if target.startswith(("http://", "https://")):
+        if mime is None:
+            mime = mimetypes.guess_type(target)[0] or "application/octet-stream"
+        return f"Savefile\r\nSave {target} {mime}\r\n\r\n"
     if mime is None:
         mime = mimetypes.guess_type(target)[0] or "application/octet-stream"
     return f"Savefile\r\nSave {encode_path(target)} {mime}\r\n\r\n"
