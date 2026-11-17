@@ -7,6 +7,7 @@ presses are deliberately fire-and-forget.
 
 import socket
 import threading
+import time
 
 from . import protocol
 
@@ -54,3 +55,31 @@ class Session:
     def _ensure_open(self):
         if self._sock is None:
             self.open()
+
+
+def collect_once(host, port, payloads, auth_path="/storage/emulated/0",
+                 http_port=8080, wait=1.2):
+    """One-shot command batch on a dedicated socket; returns everything the TV
+    emitted within `wait` seconds. Used for MediaControl whose replies arrive
+    asynchronously and may coalesce or lag the command that triggered them."""
+    sock = socket.create_connection((host, int(port)), timeout=4)
+    try:
+        sock.settimeout(2)
+        sock.sendall(protocol.probe_message().encode())
+        sock.sendall(protocol.handshake_message(auth_path, http_port, "onelong").encode())
+        for p in payloads:
+            sock.sendall(p.encode())
+        time.sleep(0.05)
+        sock.settimeout(wait)
+        buf = b""
+        while len(buf) < 65536:
+            try:
+                chunk = sock.recv(4096)
+            except (socket.timeout, TimeoutError):
+                break
+            if not chunk:
+                break
+            buf += chunk
+        return buf.decode("utf-8", errors="replace")
+    finally:
+        sock.close()

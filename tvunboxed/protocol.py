@@ -5,6 +5,7 @@ big-endian 32-bit fields. Everything here is a pure function so it can be
 unit-tested without a television.
 """
 
+import re
 from dataclasses import dataclass
 
 DISCOVERY_PORT = 48689          # 0xBE31
@@ -138,6 +139,38 @@ def media_control(command: str) -> str:
     if not command or "\r" in command or "\n" in command:
         raise ValueError("bad media command")
     return _record(f"MediaControl\r\n{command}")
+
+
+MEDIA_QUERY_COMMANDS = {
+    "getCurrentPosition",
+    "getCurrentPos",
+    "getMediaDuration",
+    "getDuration",
+    "getPlayingInfo",
+    "getCurrentVolume",
+    "getVolume",
+}
+
+
+def media_query(command: str) -> str:
+    """Read-only MediaControl queries the server accepts (whitelisted)."""
+    command = str(command).strip()
+    if command not in MEDIA_QUERY_COMMANDS:
+        raise ValueError(f"unsupported media query: {command!r}")
+    return _record(f"MediaControl\r\n{command}")
+
+
+def media_seek(position_ms: int) -> str:
+    ms = int(position_ms)
+    if ms < 0:
+        raise ValueError("position_ms must be >= 0")
+    return _record(f"MediaControl\r\nseekTo {ms}")
+
+
+def parse_media_int(text, key):
+    """Pull the first integer after '<key>' (any separator or none) from a TV reply."""
+    m = re.search(re.escape(key) + r"[\s=:]*(\d+)", str(text or ""), re.IGNORECASE)
+    return int(m.group(1)) if m else None
 
 
 def launch(package: str) -> str:

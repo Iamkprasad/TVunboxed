@@ -105,6 +105,40 @@ class SessionTests(unittest.TestCase):
         self.assertIn("auth", transcript)
         self.assertIn("KEYEVENT\r\n24", transcript)
 
+    def test_collect_once_collects_batch_reply(self):
+        srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(1)
+        port = srv.getsockname()[1]
+        from tvunboxed.client import collect_once
+
+        def serve():
+            conn, _ = srv.accept()
+            conn.settimeout(2.0)
+            buf = b""
+            end = time.monotonic() + 2.0
+            got = 0
+            while time.monotonic() < end:
+                try:
+                    chunk = conn.recv(1024)
+                except socket.timeout:
+                    break
+                if not chunk:
+                    break
+                buf += chunk
+                if buf.count(b"\r\n\r\n") >= 4:
+                    break
+            conn.sendall(b"CurrentVolume:30/100\r\n")
+            conn.close()
+            srv.close()
+
+        threading.Thread(target=serve, daemon=True).start()
+        out = collect_once("127.0.0.1", port,
+                           ["MediaControl\r\ngetVolume\r\n\r\n",
+                            "MediaControl\r\ngetMediaDuration\r\n\r\n"],
+                           wait=1.0)
+        self.assertIn("CurrentVolume:30/100", out)
+
 
 class AdvancedProtocolTests(unittest.TestCase):
     def test_builders(self):
@@ -118,6 +152,17 @@ class AdvancedProtocolTests(unittest.TestCase):
         self.assertEqual(protocol.open_link("https://example.com"), "OpenLink\r\nhttps://example.com\r\n\r\n")
         self.assertEqual(protocol.media_control("getCurrentPosition"), "MediaControl\r\ngetCurrentPosition\r\n\r\n")
         self.assertEqual(protocol.media_control("setVolume 30"), "MediaControl\r\nsetVolume 30\r\n\r\n")
+        self.assertEqual(protocol.media_query("getCurrentPosition"),
+                         "MediaControl\r\ngetCurrentPosition\r\n\r\n")
+        with self.assertRaises(ValueError):
+            protocol.media_query("setVolume 99")
+        self.assertEqual(protocol.media_seek(1500), "MediaControl\r\nseekTo 1500\r\n\r\n")
+        with self.assertRaises(ValueError):
+            protocol.media_seek(-1)
+        self.assertEqual(protocol.parse_media_int("CurrentPosition:12345", "CurrentPosition"), 12345)
+        self.assertEqual(protocol.parse_media_int("MediaDuration=8000", "MediaDuration"), 8000)
+        self.assertEqual(protocol.parse_media_int("CurrentVolume:21/100", "CurrentVolume"), 21)
+        self.assertIsNone(protocol.parse_media_int("", "CurrentPosition"))
 
     def test_type_text_rejects_newlines(self):
         with self.assertRaises(ValueError):
@@ -197,8 +242,10 @@ class ShareTests(unittest.TestCase):
         from tvunboxed import share
         with tempfile.TemporaryDirectory() as td:
             os.mkdir(os.path.join(td, "sub"))
-            open(os.path.join(td, "b.txt"), "w").write("x")
-            open(os.path.join(td, "a.txt"), "w").write("x")
+            with open(os.path.join(td, "b.txt"), "w") as _f:
+                _f.write("x")
+            with open(os.path.join(td, "a.txt"), "w") as _f:
+                _f.write("x")
             out = share.list_share(td)
             self.assertEqual(out["dir"], ".")
             self.assertEqual([e["name"] for e in out["entries"]], ["sub", "a.txt", "b.txt"])

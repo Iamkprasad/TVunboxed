@@ -281,6 +281,12 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <p class="cap" style="margin-top:10px">▸ reads info from the TV (read-only) and this device · refreshing may contact the TV’s control service</p>
     </div>
     <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Playback<button class="hint" id="mediaRefresh" style="margin-left:auto;border:0;background:none;cursor:pointer;font:inherit">refresh ↻</button></div>
+      <div class="tiles" id="mediaTiles"></div>
+      <div class="field" style="margin-top:10px"><input id="seekInput" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="seek to (seconds)" aria-label="Seek position in seconds"><button class="btn btn-blue" id="seekBtn" disabled>Seek</button></div>
+      <p class="cap" style="margin-top:8px">▸ TCP MediaControl (getCurrentPosition / getMediaDuration) · seek is sent only on your tap · units reported by the TV are treated as milliseconds</p>
+    </div>
+    <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>Picture &amp; Sound</div>
       <p class="status-line">Brightness, equaliser, and picture quality aren’t available here because this TV’s control interface doesn’t expose them.</p>
       <p class="cap" style="margin-top:8px">▸ to change those, use the TV’s own Settings menu with the remote (do it when it’s okay to change the screen). Volume/mute and supported media controls are in the Remote and Tools tabs.</p>
@@ -325,6 +331,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
     <div class="card">
       <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>Free channels <span class="hint">presets</span></div>
       <p class="cap" style="margin-bottom:10px">▸ News · India (Hindi) · World · Anime — free/public streams probed working on 2026‑11‑16 · availability varies by region/network · <strong>TV ▶</strong> plays on the TV — tap only when it’s okay to play there</p>
+      <div class="field" style="margin-bottom:10px"><input id="presetFilter" type="search" placeholder="Filter channels…" autocomplete="off" spellcheck="false" enterkeyhint="search"></div>
       <div class="list" id="presetList"></div>
     </div>
 
@@ -332,6 +339,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
       <div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>IPTV / Live TV</div>
       <p class="cap" style="margin-bottom:10px"><strong>How to use:</strong> 1) Load your own <code>.m3u/.m3u8</code> (stays on this device). 2) Tap <strong>Play</strong> for in-page playback (HLS supported via built-in player). 3) Tap <strong>TV ▶</strong> to play a channel on the TV — tap only when it’s okay to change what’s on screen.</p>
       <label class="drop" id="dropZone"><input type="file" id="m3uFile" accept=".m3u,.m3u8,.txt"><strong>Load Playlist</strong><br><span class="cap" style="letter-spacing:.05em;text-transform:none">your own .m3u · stays on this phone</span></label>
+      <div class="field" style="margin-top:12px"><input id="chanFilter" type="search" placeholder="Filter loaded channels…" autocomplete="off" spellcheck="false" enterkeyhint="search"></div>
       <div class="list" id="chanList" style="margin-top:12px"></div>
       <button class="btn" id="m3uClear" style="margin-top:12px;width:100%">Clear Playlist</button>
     </div>
@@ -598,6 +606,36 @@ q('#volLevel').addEventListener('input', e => e.target.style.setProperty('--fill
 q('#volLevel').addEventListener('change', e => post('/api/volume', {level: Number(e.target.value)}));
 q('#volLevel').style.setProperty('--fill', q('#volLevel').value + '%');
 
+/* ───────── playback (TCP MediaControl) ───────── */
+const fmtClock = ms => { if (ms == null) return '—'; const s = Math.floor(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+// shortcut: TV reply units assumed to be milliseconds; if raw values turn out to be seconds, fix the divisor here
+let mediaDuration = null;
+async function refreshMedia() {
+  const d = await safeJson('/api/media');
+  const mt = q('#mediaTiles'); if (!mt) return;
+  const t = [];
+  if (d && d.ok) {
+    mediaDuration = d.duration_ms != null && d.duration_ms > 0 ? d.duration_ms : null;
+    t.push(tile('Position', d.position_ms != null ? fmtClock(d.position_ms) : '—', 'from getCurrentPosition', d.position_ms != null ? 'info' : ''));
+    t.push(tile('Duration', d.duration_ms != null ? fmtClock(d.duration_ms) : '—', 'from getMediaDuration', d.duration_ms != null ? 'info' : ''));
+    const p = (d.playing || d.position_http || '').toString().trim();
+    t.push(tile('Playback', p ? esc(p.slice(0, 80)) : 'idle', 'from TV (read-only)', p ? 'info' : ''));
+    q('#seekBtn').disabled = mediaDuration == null;
+  } else {
+    mediaDuration = null;
+    t.push(tile('Playback', 'offline', (d && d.error) || 'unreachable', 'bad'));
+    q('#seekBtn').disabled = true;
+  }
+  mt.innerHTML = t.join('');
+}
+q('#seekBtn').addEventListener('click', async () => {
+  const s = parseFloat(q('#seekInput').value);
+  if (!(s >= 0)) { toast('enter seconds ≥ 0'); return; }
+  try { await call('/api/media/seek', { position_ms: Math.round(s * 1000) }); toast('Seek sent'); refreshMedia(); }
+  catch (e) { toast('Error: ' + e.message); }
+});
+q('#mediaRefresh').addEventListener('click', refreshMedia);
+
 /* ───────── dashboard + status chip ───────── */
 const fmtUptime = s => s == null ? '—' : s >= 3600 ? `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m` : s >= 60 ? `${Math.floor(s/60)}m ${s%60}s` : `${s}s`;
 const tile = (label, value, sub, cls) => `<div class="tile ${cls||''}"><span class="t-label">${label}</span><span class="t-value">${value}</span>${sub ? `<span class="t-sub">${sub}</span>` : ''}</div>`;
@@ -671,6 +709,7 @@ async function refreshStatus(opts = {}) {
   tiles.push(tile('Network', conn ? (conn.effectiveType || 'online') : (navigator.onLine ? 'online' : 'offline'),
                   conn ? `${conn.downlink || '?'} Mb/s · rtt ${conn.rtt || '?'} ms` : '', navigator.onLine ? 'good' : 'bad'));
   q('#tiles').innerHTML = tiles.join('');
+  refreshMedia();
   if (q('#statusLine')) q('#statusLine').textContent = tvUp ? `${tvHostPort}${health && health.tv && health.tv.latency_ms != null ? ' · latency ' + health.tv.latency_ms + ' ms' : ' · live (read-only)'}` : 'TV unreachable';
 }
 q('#statusChip').addEventListener('click', () => refreshStatus());
@@ -818,10 +857,13 @@ function playInPage(url) {
   video.src = url; video.play().catch(() => toast('Browser cannot play this stream'));
 }
 
-function renderPresetRows() {
+function renderPresetRows(term) {
   const list = q('#presetList'); if (!list) return; list.innerHTML = '';
-  let lastGroup = null;
+  const t = (term || '').trim().toLowerCase();
+  let lastGroup = null, shown = 0;
   for (const ch of PRESETS) {
+    if (t && !ch.n.toLowerCase().includes(t) && !ch.g.toLowerCase().includes(t)) continue;
+    shown++;
     if (ch.g !== lastGroup) {
       const head = document.createElement('div'); head.className = 'cap group-head'; head.textContent = ch.g;
       if (lastGroup !== null) head.style.marginTop = '6px';
@@ -834,8 +876,10 @@ function renderPresetRows() {
     tvBtn.addEventListener('click', () => openOnTv(ch.u));
     list.appendChild(row);
   }
+  if (!shown && t) list.innerHTML = '<div class="empty">No matches</div>';
 }
 renderPresetRows();
+q('#presetFilter').addEventListener('input', e => renderPresetRows(e.target.value));
 
 /* ───────── IPTV ───────── */
 let channels = [];
@@ -851,10 +895,12 @@ q('#m3uFile').addEventListener('change', async e => {
   renderChannels(); toast(channels.length + ' channels loaded');
 });
 q('#m3uClear').addEventListener('click', () => { channels = []; q('#chanList').innerHTML = ''; q('#m3uFile').value = ''; const p = q('#player'); p.removeAttribute('src'); q('#playerWrap').style.display = 'none'; });
-function renderChannels() {
+function renderChannels(term) {
   const list = q('#chanList'); list.innerHTML = '';
+  const t = (term || '').trim().toLowerCase();
+  const filtered = t ? channels.filter(ch => ch.name.toLowerCase().includes(t) || String(ch.url).toLowerCase().includes(t)) : channels;
   const CAP = 500;
-  channels.slice(0, CAP).forEach((ch, i) => {
+  filtered.slice(0, CAP).forEach((ch, i) => {
     const row = document.createElement('div'); row.className = 'row';
     row.innerHTML = `<span class="name"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4"/></svg>${esc(ch.name)}</span><span class="actions"><button>Play</button><button>TV ▶</button></span>`;
     const [playBtn, tvBtn] = row.querySelectorAll('button');
@@ -862,8 +908,10 @@ function renderChannels() {
     tvBtn.addEventListener('click', () => openOnTv(ch.url));
     list.appendChild(row);
   });
-  if (channels.length > CAP) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${channels.length - CAP} more channels not shown (showing first ${CAP})`; list.appendChild(more); }
+  if (filtered.length > CAP) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = `+ ${filtered.length - CAP} more channels not shown (showing first ${CAP})`; list.appendChild(more); }
+  else if (t && !filtered.length && channels.length) { const more = document.createElement('div'); more.className = 'empty'; more.textContent = 'No matches'; list.appendChild(more); }
 }
+q('#chanFilter').addEventListener('input', e => renderChannels(e.target.value));
 
 /* ───────── TV storage (WebDAV) ───────── */
 let davDir = '/';

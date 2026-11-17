@@ -4,6 +4,7 @@ TCP control channel. Standard library only."""
 import datetime
 import json
 import os
+import re
 import threading
 import time
 import traceback
@@ -13,7 +14,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import protocol
-from .client import Session
+from .client import Session, collect_once
 from .discovery import scan
 from .share import list_share, normalize_relpath, open_file_message, save_file_message
 from .tvdav import WebDavClient
@@ -115,6 +116,8 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._cmd_tv_http("getinstallapks", "/apkmanager/getinstallapks", json_body=True, cache_ttl=300)
         if route.startswith("/files/"):
             return self._serve_shared(route[len("/files/"):])
+        if route == "/api/media":
+            return self._cmd_media_info()
         for prefix in ("/sdcard/Download/", "/mnt/sdcard/Download/",
                        "/storage/emulated/0/Download/",
                        "sdcard/Download/", "mnt/sdcard/Download/",
@@ -153,6 +156,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
             "/api/open-url": self._cmd_open_url,
             "/api/browser": self._cmd_browser,
             "/api/airmouse": self._cmd_airmouse,
+            "/api/media/seek": self._cmd_media_seek,
             "/api/airclick": self._cmd_airclick,
             "/api/mouse-mode": self._cmd_mouse_mode,
             "/api/type": self._cmd_type,
@@ -317,6 +321,44 @@ class RemoteHandler(BaseHTTPRequestHandler):
         if str(body.get("confirm", "")).lower() != "uninstall":
             raise ValueError("send confirm='uninstall' to proceed")
         self.server.session.send(protocol.uninstall_app(body.get("package", "")))
+
+    def _cmd_media_info(self):
+        tv = self.server.session
+        # MediaControl replies arrive asynchronously and may coalesce; a fresh
+        # dedicated socket keeps late answers from contaminating the key channel.
+        payloads = [protocol.media_query("getCurrentPosition"),
+                    protocol.media_query("getMediaDuration"),
+                    protocol.media_query("getVolume"),
+                    protocol.media_query("getCurrentVolume")]  # trailing flush
+        try:
+            raw = collect_once(tv.host, tv.port, payloads,
+                               http_port=getattr(tv, "http_port", 8080), wait=1.2)
+        except (ConnectionError, OSError) as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 502)
+        pos = protocol.parse_media_int(raw, "CurrentPosition")
+        dur = protocol.parse_media_int(raw, "MediaDuration")
+        vol = maxv = None
+        m = re.search(r"CurrentVolume[\s=:]*(\d+)/(\d+)", raw)
+        if m:
+            vol, maxv = int(m.group(1)), int(m.group(2))
+        http_media = self._tv_http_body("/remote/get_media_info")
+        http_pos = self._tv_http_body("/remote/get_position_info")
+        return self._send_json({"ok": True,
+                                "position_ms": pos, "duration_ms": dur,
+                                "volume": vol, "max_volume": maxv,
+                                "playing": http_media or None,
+                                "position_http": http_pos or None,
+                                "raw": raw})
+
+    def _tv_http_body(self, path):
+        try:
+            with urllib.request.urlopen(f"http://{self.server.tvdav.host}:{self.server.tvdav.port}{path}", timeout=3) as resp:
+                return resp.read().decode("utf-8", errors="replace").strip()
+        except Exception:
+            return ""
+
+    def _cmd_media_seek(self, body):
+        self.server.session.send(protocol.media_seek(body.get("position_ms", 0)))
 
     def _cmd_open_url(self, body):
         url = str(body.get("url", "")).strip()
