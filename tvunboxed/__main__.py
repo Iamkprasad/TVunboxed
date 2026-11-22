@@ -14,6 +14,9 @@ if _DEFAULT_SHARE is None and os.path.isdir("/sdcard/Download"):
 
 
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "care":
+        from .care_cli import main as care_main
+        return care_main(sys.argv[2:])
     parser = argparse.ArgumentParser(prog="tvunboxed", description=__doc__)
     parser.add_argument("--tv", help="TV IP address; without it, discovery on the LAN is used")
     parser.add_argument("--port", type=int, default=protocol.CONTROL_PORT_DEFAULT)

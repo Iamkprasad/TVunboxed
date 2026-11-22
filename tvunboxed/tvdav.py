@@ -143,6 +143,15 @@ class WebDavClient:
             raise ConnectionError(f"MOVE {src} -> {dst}: HTTP {status}")
         return status
 
+    def copy(self, src, dst):
+        destination = f"http://{self.host}:{self.port}{self._abs(dst)}"
+        status, _, _ = _roundtrip(
+            self.host, self.port, "COPY", self._abs(src),
+            extra_headers={"Destination": destination, "Overwrite": "T"})
+        if status not in (200, 201, 204):
+            raise ConnectionError(f"COPY {src} -> {dst}: HTTP {status}")
+        return status
+
     def delete(self, path):
         status, _, _ = _roundtrip(self.host, self.port, "DELETE", self._abs(path))
         if status not in (200, 204):

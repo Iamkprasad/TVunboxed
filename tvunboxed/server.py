@@ -14,6 +14,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from . import protocol
+from . import tvcare
 from .client import Session, collect_once
 from .discovery import scan
 from .share import list_share, normalize_relpath, open_file_message, save_file_message
@@ -102,6 +103,10 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._cmd_dav_list()
         if route == "/api/tvapps":
             return self._cmd_tvapps()
+        if route == "/api/care/audit":
+            return self._cmd_care_audit()
+        if route.startswith("/api/care/storage"):
+            return self._cmd_care_storage()
         if route == "/api/dav/get":
             return self._cmd_dav_get()
         if route == "/api/tv/info/volume":
@@ -129,6 +134,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
     # -- writes ----------------------------------------------------------------
     def do_POST(self):
         t0 = time.monotonic()
+        self._response_sent = False
         try:
             self._do_POST_route()
         finally:
@@ -161,6 +167,9 @@ class RemoteHandler(BaseHTTPRequestHandler):
             "/api/mouse-mode": self._cmd_mouse_mode,
             "/api/type": self._cmd_type,
             "/api/uninstall": self._cmd_uninstall,
+            "/api/care/cleanup": self._cmd_care_cleanup,
+            "/api/care/purge": self._cmd_care_purge,
+            "/api/care/stage": self._cmd_care_stage,
             "/api/dav/delete": self._cmd_dav_delete,
             "/api/dav/mkcol": self._cmd_dav_mkcol,
             "/api/dav/move": self._cmd_dav_move,
@@ -173,7 +182,8 @@ class RemoteHandler(BaseHTTPRequestHandler):
             return self._send_json({"ok": False, "error": str(exc)}, 400)
         except ConnectionError as exc:
             return self._send_json({"ok": False, "error": str(exc)}, 502)
-        return self._send_json({"ok": True})
+        if not getattr(self, "_response_sent", False):
+            return self._send_json({"ok": True})
 
     # advanced commands ----------------------------------------------------------
     def _cmd_health(self):
@@ -318,6 +328,88 @@ class RemoteHandler(BaseHTTPRequestHandler):
 
     def _cmd_dav_move(self, body):
         self._dav().move(str(body.get("from", "")).strip(), str(body.get("to", "")).strip())
+
+    # care toolkit -------------------------------------------------------------
+    def _cmd_care_audit(self):
+        try:
+            report = tvcare.audit(self.server.session, self.server.tvdav,
+                                  self.server.tvdav.port)
+        except Exception as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 502)
+        self.server.care_token = report["token"]
+        self.server.care_paths = [item["path"] for item in report["reclaimable"]["items"]]
+        self.server.care_backup_token = report["backup_token"]
+        self.server.care_backup_paths = [item["path"] for item in report["backups"]]
+        log_event(self.server, "care_audit",
+                  files=len(self.server.care_paths),
+                  bytes=report["reclaimable"]["bytes"])
+        return self._send_json(report)
+
+    def _cmd_care_storage(self):
+        query = {}
+        if "?" in self.path:
+            for piece in self.path.split("?", 1)[1].split("&"):
+                if "=" in piece:
+                    key, value = piece.split("=", 1)
+                    query[key] = value
+        target = urllib.parse.unquote(query.get("dir", "/sdcard/"))
+        if not target.startswith("/sdcard/") or ".." in target.split("/"):
+            return self._send_json({"ok": False, "error": "only /sdcard is accessible"}, 400)
+        try:
+            listing = self.server.tvdav.list(target)
+        except Exception as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 502)
+        entries = [{"name": e.name, "path": e.path, "dir": e.is_dir,
+                    "size": e.size} for e in listing.entries]
+        return self._send_json({"ok": True, "dir": listing.path, "entries": entries})
+
+    def _cmd_care_cleanup(self, body):
+        paths = body.get("paths", [])
+        token = str(body.get("confirm", ""))
+        expected = getattr(self.server, "care_token", None)
+        allowed = set(getattr(self.server, "care_paths", []))
+        if not expected or token != expected:
+            return self._send_json(
+                {"ok": False, "error": "run a fresh audit and use its confirmation token"}, 400)
+        if not isinstance(paths, list) or not paths or any(p not in allowed for p in paths):
+            return self._send_json(
+                {"ok": False, "error": "paths must come from the latest audit"}, 400)
+        try:
+            results = tvcare.cleanup(self.server.tvdav, paths, token, expected)
+        except ValueError as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 400)
+        log_event(self.server, "care_cleanup", results=results)
+        return self._send_json({"ok": True, "results": results})
+
+    def _cmd_care_purge(self, body):
+        paths = body.get("paths", [])
+        token = str(body.get("confirm", ""))
+        expected = getattr(self.server, "care_backup_token", None)
+        allowed = set(getattr(self.server, "care_backup_paths", []))
+        if not expected or token != expected:
+            return self._send_json(
+                {"ok": False, "error": "run a fresh audit and use its backup token"}, 400)
+        if not isinstance(paths, list) or not paths or any(p not in allowed for p in paths):
+            return self._send_json(
+                {"ok": False, "error": "paths must come from the latest audit"}, 400)
+        try:
+            results = tvcare.purge_backups(self.server.tvdav, paths, token, expected)
+        except ValueError as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 400)
+        log_event(self.server, "care_purge", results=results)
+        return self._send_json({"ok": True, "results": results})
+
+    def _cmd_care_stage(self, body):
+        local = str(body.get("path", "")).strip()
+        try:
+            result = tvcare.stage_apk(self.server.tvdav, local)
+            self.server.session.send(result["openfile"])
+        except ValueError as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 400)
+        except (ConnectionError, OSError) as exc:
+            return self._send_json({"ok": False, "error": str(exc)}, 502)
+        log_event(self.server, "care_stage", remote=result["remote"])
+        return self._send_json({"ok": True, **result})
 
     def _cmd_uninstall(self, body):
         if str(body.get("confirm", "")).lower() != "uninstall":
@@ -517,6 +609,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
         return data
 
     def _send_json(self, obj, status=200):
+        self._response_sent = True
         body = json.dumps(obj).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -540,6 +633,10 @@ def run(session_host, tv_port=protocol.CONTROL_PORT_DEFAULT, bind="127.0.0.1",
     httpd.share = share_dir
     httpd.tvdav = WebDavClient(session_host, tv_webdav_port, "/")
     httpd.log_path = log_path
+    httpd.care_token = None
+    httpd.care_paths = []
+    httpd.care_backup_token = None
+    httpd.care_backup_paths = []
     print(f"TVunboxed http://{bind}:{http_port}/  ->  TV {session_host}:{tv_port}")
     print(f"tv webdav: {session_host}:{tv_webdav_port}  (unauthenticated, read/write — trusted Wi-Fi only)")
     if share_dir:

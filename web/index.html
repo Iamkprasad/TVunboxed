@@ -216,6 +216,19 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
 .nav-item:active{transform:scale(.94)}
 .nav-item.active{color:var(--accent-ink);background:var(--accent);box-shadow:var(--hard-sm)}
 .nav-item.active svg{stroke:var(--accent-ink)}
+.navbar{grid-template-columns:repeat(6,minmax(0,1fr))}
+.nav-item{font-size:.5rem;letter-spacing:.06em;padding:5px 2px}
+.care-banner{border:2px solid var(--warn);background:var(--muted);padding:10px;font-family:var(--font-mono);font-size:.62rem;line-height:1.5;color:var(--text)}
+.care-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.care-stat>div{background:var(--muted);border:1px solid var(--line);padding:8px}
+.care-stat b{display:block;font-family:var(--font-mono);font-size:1rem;color:var(--ok)}
+.care-row{display:flex;align-items:center;gap:8px;padding:7px;border:1px solid var(--line);background:var(--recess);font-family:var(--font-mono);font-size:.62rem}
+.care-row input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.care-row .sz{margin-left:auto;color:var(--ok);white-space:nowrap}
+.care-badge{font-family:var(--font-mono);font-size:.55rem;padding:2px 5px;border:1px solid var(--bord)}
+.care-badge.system{color:var(--dim)}.care-badge.user{color:var(--info)}.care-badge.unknown{color:var(--warn)}
+.care-apps{max-height:26vh;overflow-y:auto;display:grid;gap:5px}
+.care-apps .care-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── sheet (floating remote, Android-style bottom drawer) ────────────── */
 .drawer-backdrop{position:fixed;inset:0;z-index:44;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .22s}
@@ -393,6 +406,53 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
     <p class="cap" style="text-align:center;padding:2px 0 8px">TVunboxed · mixtape edition · MIT</p>
   </section>
 
+  <!-- ════════ TAB: CARE ════════ -->
+  <section class="tab" id="tab-care" role="tabpanel">
+    <div class="card">
+      <div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>TV Care</div>
+      <p class="care-banner">Scope: user files under /sdcard only. System bloat cannot be removed safely here; ADB/root bypasses and firmware writes are out of scope. Keep port 8000 on a trusted LAN.</p>
+      <div class="field" style="margin-top:10px"><button class="btn btn-amber" id="careAudit" style="flex:1">Run Audit</button></div>
+      <div class="care-stat" style="margin-top:10px">
+        <div><span class="cap">Apps</span><b id="careAppCount">–</b></div>
+        <div><span class="cap">Files</span><b id="careFileCount">–</b></div>
+        <div><span class="cap">Reclaim</span><b id="careReclaim">–</b></div>
+      </div>
+      <p class="status-line" id="careNote"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Installed Apps</div>
+      <div class="care-apps" id="careApps"><div class="empty">Run an audit.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Reclaimable Files</div>
+      <div class="list" id="careFiles"><div class="empty">Run an audit.</div></div>
+      <p class="cap" style="margin-top:10px">Selected files are copied to /sdcard/backups/care/ on the TV first. Space is freed only when those backups are purged below.</p>
+      <div class="field" style="margin-top:8px"><input id="careToken" placeholder="token from audit" autocomplete="off" spellcheck="false"><button class="btn danger" id="careCleanup">Delete Selected</button></div>
+      <p class="status-line" id="careResult"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">TV Backups</div>
+      <div class="list" id="careBackups"><div class="empty">Run an audit.</div></div>
+      <p class="cap" style="margin-top:10px">Purging a backup is permanent. Review the list carefully.</p>
+      <div class="field" style="margin-top:8px"><input id="careBackupToken" placeholder="backup token" autocomplete="off" spellcheck="false"><button class="btn danger" id="carePurge">Purge Selected</button></div>
+      <p class="status-line" id="carePurgeResult"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Sideload APK</div>
+      <p class="cap">Path to an APK on this machine. The bridge uploads it, then opens the TV installer for you to approve on screen.</p>
+      <div class="field" style="margin-top:8px"><input id="careApkPath" placeholder="C:\Downloads\app.apk" spellcheck="false"><button class="btn btn-blue" id="careStage">Stage + Open</button></div>
+      <p class="status-line" id="careStageResult"></p>
+      <div class="field" style="margin-top:10px">
+        <button class="btn" data-care-launch="org.videolan.vlc">VLC</button>
+        <button class="btn" data-care-launch="com.cvte.tv.media">Media</button>
+      </div>
+    </div>
+  </section>
+
 </main>
 
 <!-- ════════ bottom-sheet remote tray (all tabs) ════════ -->
@@ -471,6 +531,7 @@ html[data-theme="dark"] .row button.red{color:var(--danger)}
   <button class="nav-item nav-remote" id="navRemote" data-tab="remote" type="button" role="tab" aria-pressed="false" aria-label="Remote — opens remote tray"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20" rx="0"/><path d="M11 18h2"/></svg>Remote</button>
   <button class="nav-item" data-tab="tv" role="tab"><svg viewBox="0 0 24 24"><path d="M4 7h16v10H4z"/><path d="M12 17v4M9 21h6"/></svg>TV</button>
   <button class="nav-item" data-tab="tools" role="tab"><svg viewBox="0 0 24 24"><path d="M14 7l-6.5 6.5a2 2 0 0 0 2.8 2.8L17 9.5"/><path d="M14 7l3-3 3 3-3 3"/></svg>Tools</button>
+  <button class="nav-item" data-tab="care" role="tab"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>Care</button>
 </nav>
 
 <div class="toast" id="toast" role="status"></div>
@@ -588,6 +649,7 @@ qa('.nav-item').forEach(btn => btn.addEventListener('click', () => {
   qa('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + id));
   window.scrollTo({top: 0, behavior: 'smooth'});
   if (id === 'tv') loadApps(false);
+  if (id === 'care') loadCare();
 }));
 
 /* ---------- api ---------- */
@@ -1061,6 +1123,96 @@ async function loadApps(force = true) {
   } catch { if (!appsCache.data) grid.innerHTML = '<div class="empty" style="grid-column:1/-1">unreachable</div>'; }
 }
 q('#appsRefresh').addEventListener('click', () => loadApps(true));
+
+/* ───────── care toolkit ───────── */
+let careReport = null;
+const careBytes = n => (n / 1048576).toFixed(2) + ' MB';
+
+async function loadCare() {
+  const note = q('#careNote');
+  note.textContent = 'auditing tv…';
+  try {
+    const res = await fetch('/api/care/audit');
+    const d = await res.json();
+    if (!res.ok || !d.ok) throw new Error(d.error || 'HTTP ' + res.status);
+    careReport = d;
+    q('#careAppCount').textContent = d.app_counts.system + d.app_counts.user + d.app_counts.unknown;
+    q('#careFileCount').textContent = d.storage.file_count;
+    q('#careReclaim').textContent = careBytes(d.reclaimable.bytes);
+    q('#careToken').value = d.token;
+    q('#careBackupToken').value = d.backup_token;
+    note.textContent = d.app_counts.system + ' system apps cannot be removed safely here';
+    note.className = 'status-line';
+    q('#careApps').innerHTML = d.apps.map(a =>
+      `<div class="care-row"><span class="care-badge ${a.kind}">${esc(a.kind)}</span><span class="care-name">${esc(a.name || a.package)}</span></div>`
+    ).join('') || '<div class="empty">no apps reported</div>';
+    q('#careFiles').innerHTML = d.reclaimable.items.map((f, i) =>
+      `<label class="care-row"><input type="checkbox" class="care-pick" data-i="${i}" checked><span class="care-name">${esc(f.reason)}</span><span class="care-name">${esc(f.path)}</span><span class="sz">${careBytes(f.size)}</span></label>`
+    ).join('') || '<div class="empty">nothing reclaimable</div>';
+    q('#careBackups').innerHTML = d.backups.map((f, i) =>
+      `<label class="care-row"><input type="checkbox" class="care-backup-pick" data-i="${i}"><span class="care-name">${esc(f.path)}</span><span class="sz">${careBytes(f.size)}</span></label>`
+    ).join('') || '<div class="empty">no care backups on the TV</div>';
+    q('#careResult').textContent = '';
+    q('#carePurgeResult').textContent = '';
+  } catch (e) {
+    note.textContent = 'audit failed: ' + e.message;
+    note.className = 'status-line bad';
+  }
+}
+
+q('#careAudit').addEventListener('click', loadCare);
+
+q('#careCleanup').addEventListener('click', async () => {
+  if (!careReport) return toast('Run an audit first');
+  const picks = qa('.care-pick:checked').map(el => careReport.reclaimable.items[Number(el.dataset.i)].path);
+  if (!picks.length) return toast('Select at least one file');
+  const token = q('#careToken').value.trim();
+  if (!token) return toast('Enter the confirmation token');
+  if (!confirm('Back up and delete ' + picks.length + ' user file(s)?')) return;
+  const out = q('#careResult');
+  out.textContent = 'working…';
+  try {
+    const d = await call('/api/care/cleanup', {paths: picks, confirm: token});
+    const deleted = d.results.filter(r => r.status === 'deleted').length;
+    out.textContent = deleted + ' moved to TV backup, ' + (d.results.length - deleted) + ' errors · purge below to free space';
+    out.className = 'status-line ok';
+    await loadCare();
+  } catch (e) { out.textContent = e.message; out.className = 'status-line bad'; }
+});
+
+q('#carePurge').addEventListener('click', async () => {
+  if (!careReport) return toast('Run an audit first');
+  const picks = qa('.care-backup-pick:checked').map(el => careReport.backups[Number(el.dataset.i)].path);
+  if (!picks.length) return toast('Select at least one backup');
+  const token = q('#careBackupToken').value.trim();
+  if (!token) return toast('Enter the backup token');
+  if (!confirm('Permanently delete ' + picks.length + ' TV backup(s)? This cannot be undone.')) return;
+  const out = q('#carePurgeResult');
+  out.textContent = 'working…';
+  try {
+    const d = await call('/api/care/purge', {paths: picks, confirm: token});
+    const done = d.results.filter(r => r.status === 'purged').length;
+    out.textContent = done + ' purged · space reclaimed on the TV';
+    out.className = 'status-line ok';
+    await loadCare();
+  } catch (e) { out.textContent = e.message; out.className = 'status-line bad'; }
+});
+
+q('#careStage').addEventListener('click', async () => {
+  const path = q('#careApkPath').value.trim();
+  const out = q('#careStageResult');
+  if (!path) return toast('Enter a local APK path');
+  if (!confirm('Upload this APK and open the TV installer?')) return;
+  out.textContent = 'uploading…';
+  try {
+    const d = await call('/api/care/stage', {path: path});
+    out.textContent = d.instruction;
+    out.className = 'status-line ok';
+  } catch (e) { out.textContent = e.message; out.className = 'status-line bad'; }
+});
+
+qa('[data-care-launch]').forEach(btn => btn.addEventListener('click', () =>
+  post('/api/app', {package: btn.dataset.careLaunch})));
 
 /* ───────── theme toggle ───────── */
 q('#themeToggle').addEventListener('click', () => {

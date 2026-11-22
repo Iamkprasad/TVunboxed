@@ -8,6 +8,9 @@ Control the TV from your browser on the same Wi‑Fi — power, volume, channels
 
 Built and verified on a partner smart-TV (Android 8.0, firmware with the built-in LAN control service). It talks a single specific control protocol; see **Compatibility**.
 
+## Android app (new)
+A native Kotlin/Compose client lives in `android/` with five sections — Remote, Cast, Mirror, Files and TV Care. It uses the same vendor-compatible protocol, adds device capability detection, phone-hosted HTTP media streaming, a TV screen viewer with touchback research shell, WebDAV file manager and guarded TV Care. Build with `cd android && ./gradlew assembleDebug` (JDK 17/21, Android SDK 35); the APK is at `android/app/build/outputs/apk/debug/app-debug.apk`. See `docs/TVUNBOXED_*.md` for audit, roadmap, architecture, compatibility and test plan. The Python bridge remains the reference implementation and Termux fallback.
+
 ## What it can do
 
 | Area | What you get | Status |
@@ -25,6 +28,12 @@ Built and verified on a partner smart-TV (Android 8.0, firmware with the built-i
 | **Uninstall TV apps** | Destructive; double-confirmed | ⚠️ unverified (guard verified: refuses without `confirm:"uninstall"`) |
 | Screen mirroring | **Impossible by design** (browser/phone can't push frames to this firmware) | not supported |
 | App-store installs from a catalog | Intentionally not reproduced | not supported |
+
+## TV Care (new tab)
+
+The **Care** tab audits installed apps and `/sdcard` files, then lets you reclaim user storage in two guarded steps: selected files are copied to `/sdcard/backups/care/` on the TV and removed from their original location; space is freed only after you explicitly purge those backups with the second confirmation token. APKs can be staged to `/sdcard/Upload/` and opened through the TV's own installer (you still tap Install on screen).
+
+CLI: `python3 -m tvunboxed care --tv IP --audit` or `--dry-clean`; `--stage FILE --yes stage` uploads an APK. Scope is strictly `/sdcard` — no ADB authorization bypass, root, firmware writes, or system-package removal. This firmware's WebDAV service exposes `/` (including `/system` and `/data`); keep port 8000 firewalled to your LAN.
 
 ## Compatibility — this is NOT universal
 
