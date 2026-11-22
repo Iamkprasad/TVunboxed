@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TVunboxed — mobile prototype</title>
+<style>
+:root,html[data-theme=dark]{--bg:#0e0f1a;--card:#16182b;--muted:#1f2238;--recess:#0b0c16;--line:#2c3048;--bord:#636889;--text:#edeffc;--dim:#a6acd6;--disabled:#4a4f6b;--accent:#d5cdff;--accent-ink:#2a1159;--ok:#c5e17a;--info:#addbff;--warn:#ffe08a;--danger:#ffc3c3;--pink:#ffbfd9;--hard:3px 3px 0 rgba(0,0,0,.45)}
+html[data-theme=light]{--bg:#cccffa;--card:#fff;--muted:#f1ece6;--recess:#e9e4da;--line:#dcd3c6;--bord:#2d241b;--text:#2d241b;--dim:#5a5146;--disabled:#b8ad9f;--accent:#2d241b;--accent-ink:#cccffa;--hard:3px 3px 0 rgba(45,36,27,.3)}
+*{box-sizing:border-box;margin:0;padding:0}body{min-height:100vh;background:#05060c;background-image:linear-gradient(rgba(101,104,137,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(101,104,137,.08) 1px,transparent 1px);background-size:26px 26px;display:grid;place-items:center;font-family:'Trebuchet MS',Verdana,sans-serif;color:var(--text);padding:18px}
+.device{width:390px;height:844px;background:var(--bg);border:2px solid var(--bord);box-shadow:10px 10px 0 rgba(0,0,0,.6);display:flex;flex-direction:column;position:relative;overflow:hidden;transition:background .25s,color .25s}
+.statusbar{height:28px;flex:0 0 28px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:700 10px 'Courier New',monospace;letter-spacing:.06em;color:var(--dim);background:var(--recess)}
+.appbar{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--line);position:relative;z-index:5}
+.appbar img.logo{width:38px;height:38px;flex:0 0 auto}
+.wordmark h1{font:italic 700 20px Georgia,serif;line-height:1;letter-spacing:.01em}.wordmark small{display:block;font:700 8px 'Courier New',monospace;letter-spacing:.22em;color:var(--dim);margin-top:4px;text-transform:uppercase}
+.theme-toggle{all:unset;width:34px;height:34px;display:grid;place-items:center;border:2px solid var(--bord);background:var(--muted);box-shadow:2px 2px 0 rgba(0,0,0,.4);cursor:pointer;transition:transform .12s}.theme-toggle:active{transform:translate(2px,2px);box-shadow:none}.theme-toggle svg{width:17px;height:17px;stroke:var(--text);fill:none;stroke-width:2}
+.chip{margin-left:auto;display:flex;align-items:center;gap:6px;font:700 9px 'Courier New',monospace;letter-spacing:.08em;color:var(--dim);background:var(--muted);border:1px solid var(--bord);padding:7px 8px;cursor:pointer;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.foil{position:absolute;left:0;right:0;bottom:-1px;height:3px;background:linear-gradient(90deg,#cccffa,#ffbfd9,#b2f0ed,#c5e17a,#addbff,#d5cdff,#cccffa);background-size:300% 100%;animation:foil 9s linear infinite}
+@keyframes foil{to{background-position:300% 0}}@keyframes pulse{50%{box-shadow:0 0 2px var(--ok);opacity:.7}}@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}@keyframes shimmer{to{background-position:-200% 0}}@keyframes pop{0%{transform:scale(.8)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+.screen{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;scrollbar-width:none}.screen::-webkit-scrollbar{display:none}
+.page{display:none;flex-direction:column;gap:12px}.page.active{display:flex;animation:fade .28s ease}
+.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--hard);padding:12px}
+.card-title{display:flex;align-items:center;gap:8px;font:700 10px 'Courier New',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding-bottom:9px;margin-bottom:10px;border-bottom:1px dashed var(--line)}
+.card-title .hint{margin-left:auto;color:var(--ok);letter-spacing:.04em;text-transform:none;font:700 9px 'Courier New',monospace;cursor:pointer}
+.hero{display:flex;align-items:center;gap:12px}.bigdot{width:54px;height:54px;flex:0 0 auto;background:var(--ok);border:2px solid var(--bord);display:grid;place-items:center;box-shadow:var(--hard)}.bigdot svg{width:28px;height:28px;stroke:var(--accent-ink);fill:none;stroke-width:2.4}.hero h2{font:italic 700 24px Georgia,serif}.hero p{font:700 9px 'Courier New',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-top:3px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tile{background:var(--muted);border:1px solid var(--line);padding:9px;display:grid;gap:3px;transition:transform .15s}.tile:hover{transform:translateY(-2px)}.t-label{font:700 8px 'Courier New',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}.t-value{font-size:16px;font-weight:700}.t-value.ok{color:var(--ok)}.t-value.info{color:var(--info)}.t-value.bad{color:var(--danger)}.t-sub{font:9px 'Courier New',monospace;color:var(--disabled)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 12px 'Trebuchet MS',sans-serif;color:var(--text);background:var(--muted);border:2px solid var(--bord);padding:9px 8px;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,.4);transition:transform .1s,box-shadow .1s,filter .15s}.btn:hover{filter:brightness(1.12)}.btn:active{transform:translate(2px,2px);box-shadow:none}.btn.blue{background:var(--info);color:#003454}.btn.green{background:var(--ok);color:#3f4e00}.btn.pink{background:var(--pink);color:#82004f}.btn.amber{background:var(--accent);color:var(--accent-ink)}.btn.danger{background:var(--danger);color:#880023}.btn.iconbtn{width:40px;height:40px;padding:0;flex:0 0 auto}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}.field{display:flex;gap:8px}.field input,.pathbar input,.search input{flex:1;min-width:0;background:var(--recess);border:1px solid var(--bord);color:var(--text);padding:10px;font:12px 'Courier New',monospace}.field input:focus,.search input:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 2px rgba(173,219,255,.25)}
+.pathbar{display:flex;gap:8px;margin-bottom:10px}.search{margin-bottom:10px}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}.chipf{font:700 10px 'Courier New',monospace;letter-spacing:.06em;text-transform:uppercase;padding:7px 11px;border:1px solid var(--bord);background:var(--muted);color:var(--dim);cursor:pointer;transition:.15s}.chipf.active{background:var(--accent);color:var(--accent-ink);box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.row{display:flex;align-items:center;gap:8px;background:var(--muted);border:1px solid var(--line);padding:9px;animation:fade .25s ease both}.row:hover{border-color:var(--bord)}.row .name{flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.row .actions{display:flex;gap:5px}.row button{font:700 9px 'Courier New',monospace;color:var(--accent);background:transparent;border:1px solid var(--bord);padding:6px 7px;cursor:pointer}.row button:active{background:var(--accent);color:var(--accent-ink)}
+.apps{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.app{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;animation:pop .25s ease both}.app .ico{width:46px;height:46px;border:2px solid var(--bord);background:var(--muted);box-shadow:2px 2px 0 rgba(0,0,0,.4);display:grid;place-items:center;font:700 17px 'Courier New',monospace;color:var(--accent)}.app span{font:9px 'Courier New',monospace;color:var(--dim);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drop{border:2px dashed var(--bord);padding:16px;text-align:center;color:var(--dim);font:10px 'Courier New',monospace;cursor:pointer}.drop b{display:block;color:var(--accent);font:italic 700 17px Georgia,serif;margin-bottom:4px}
+.sk{background:linear-gradient(90deg,var(--muted) 25%,var(--line) 37%,var(--muted) 63%);background-size:200% 100%;animation:shimmer 1.2s infinite;height:13px;border:1px solid var(--line)}
+.player{display:none;align-items:center;gap:8px;background:var(--recess);border:1px solid var(--line);padding:8px;margin-bottom:10px}.player.on{display:flex;animation:fade .25s}.pbar{flex:1;height:6px;background:var(--muted);position:relative;overflow:hidden}.pbar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--ok);animation:seek 8s linear forwards}@keyframes seek{to{width:100%}}
+.danger-zone{border-color:var(--danger)}.danger-zone .card-title{color:var(--danger);border-bottom-style:solid}
+.navbar{height:62px;flex:0 0 62px;display:grid;grid-template-columns:repeat(6,1fr);background:var(--card);border-top:1px solid var(--line);padding:5px 3px}.navitem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;color:var(--dim);font:700 8px 'Courier New',monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .18s,color .18s,transform .15s}.navitem svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}.navitem:active{transform:scale(.92)}.navitem.active{color:var(--accent-ink);background:var(--accent);box-shadow:2px 2px 0 rgba(0,0,0,.35)}
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}.backdrop.open{opacity:1;pointer-events:auto}
+.drawer{position:absolute;left:0;right:0;bottom:0;height:80%;background:var(--card);border:2px solid var(--bord);border-bottom:0;transform:translateY(102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;z-index:45;visibility:hidden;box-shadow:0 -4px 0 rgba(0,0,0,.35)}.drawer.open{transform:none;visibility:visible}
+.handle{width:42px;height:5px;background:var(--bord);opacity:.7;margin:9px auto 4px}
+.drawer-head{display:flex;align-items:center;gap:7px;padding:4px 12px 9px;border-bottom:1px dashed var(--line);font:700 10px 'Courier New',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}.sheet-tabs{display:flex;gap:5px;margin-left:4px}.sheet-tab{font:700 9px 'Courier New',monospace;padding:6px 9px;border:1px solid var(--bord);background:var(--muted);color:var(--dim);cursor:pointer}.sheet-tab.active{background:var(--accent);color:var(--accent-ink)}.drawer-close{margin-left:auto;width:30px;height:30px;border:2px solid var(--bord);background:var(--muted);color:var(--text);cursor:pointer;display:grid;place-items:center}
+.drawer-body{flex:1;overflow-y:auto;padding:12px;scrollbar-width:none}.viewport{overflow:hidden}.track{display:flex;transition:transform .28s ease}.sheet{flex:0 0 100%;display:flex;flex-direction:column;gap:11px;padding:2px}
+.dpad{display:grid;grid-template-columns:repeat(3,58px);gap:7px;justify-content:center}.dpad .btn{height:58px;font-size:17px;padding:0}.dpad .spacer{visibility:hidden}.dpad .ok{background:var(--info);color:#003454}
+.power{position:relative;overflow:hidden}.power .fill{position:absolute;inset:0;background:var(--danger);transform:scaleY(0);transform-origin:bottom;pointer-events:none;opacity:.65}.power.holding .fill{animation:hold .6s linear forwards}@keyframes hold{to{transform:scaleY(1)}}
+.strip4{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.strip3{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.strip2{display:grid;grid-template-columns:1fr 1fr;gap:7px}.strip4 .btn,.strip3 .btn,.strip2 .btn{min-height:44px}.strip4 .btn{font-size:13px}
+.vol{display:flex;align-items:center;gap:8px;font:9px 'Courier New',monospace;color:var(--dim)}.vol input{flex:1;-webkit-appearance:none;height:8px;background:linear-gradient(90deg,var(--info) var(--fill,55%),var(--muted) var(--fill,55%));border:1px solid var(--line)}.vol input::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:22px;background:var(--accent);border:2px solid var(--bord);box-shadow:2px 2px 0 rgba(0,0,0,.4)}
+.pad{height:130px;border:2px dashed var(--bord);background:var(--muted);display:grid;place-items:center;font:700 10px 'Courier New',monospace;letter-spacing:.14em;color:var(--dim);text-transform:uppercase;touch-action:none}
+.kb{display:flex;flex-direction:column;gap:5px}.krow{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}.key{min-height:36px;display:grid;place-items:center;border:1px solid var(--bord);background:var(--muted);font:12px 'Courier New',monospace;cursor:pointer;transition:transform .08s,background .1s}.key:active{transform:scale(.94);background:var(--accent);color:var(--accent-ink)}.key.fn{font-size:10px}.key.wide{grid-column:span 2}
+.typed{font:12px 'Courier New',monospace;color:var(--ok);min-height:20px;border-bottom:1px dashed var(--line);padding:4px;word-break:break-all}.cursor{display:inline-block;width:7px;height:13px;background:var(--ok);vertical-align:-2px;animation:blink 1s steps(1) infinite}@keyframes blink{50%{opacity:0}}
+.toast{position:absolute;bottom:72px;left:50%;transform:translate(-50%,12px);opacity:0;z-index:70;background:var(--card);border:2px solid var(--accent);color:var(--text);padding:9px 14px;font:700 10px 'Courier New',monospace;pointer-events:none;transition:opacity .2s,transform .2s;max-width:86%;text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.4)}.toast.on{opacity:1;transform:translate(-50%,0)}
+.dlg{position:absolute;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;z-index:80;opacity:0;pointer-events:none;transition:opacity .2s}.dlg.open{opacity:1;pointer-events:auto}.dlg-card{width:300px;background:var(--card);border:2px solid var(--danger);box-shadow:6px 6px 0 rgba(0,0,0,.5);padding:16px;transform:scale(.94);transition:transform .22s}.dlg.open .dlg-card{transform:scale(1)}.dlg-card h3{font:700 12px 'Courier New',monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--danger);padding-bottom:9px;border-bottom:1px solid var(--line)}.dlg-card p{font-size:12px;line-height:1.5;margin:12px 0;color:var(--dim)}
+.hintline{font:9px 'Courier New',monospace;color:var(--dim);line-height:1.5;letter-spacing:.04em}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="device" id="device">
+ <div class="statusbar"><span id="clock">9:41</span><span>4G ▮▮▮  93%</span></div>
+ <header class="appbar">
+  <img class="logo" alt="TVunboxed" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230E0F1A'/%3E%3Crect x='4' y='12' width='56' height='40' fill='%23D5CDFF' stroke='%2316182B' stroke-width='3.5'/%3E%3Crect x='10' y='18' width='44' height='10' fill='%2316182B'/%3E%3Ctext x='32' y='25.4' text-anchor='middle' font-family='monospace' font-weight='700' font-size='7' fill='%23C5E17A'%3ETV-UNBOXED%3C/text%3E%3Ccircle cx='21' cy='40' r='6' fill='none' stroke='%2316182B' stroke-width='3.5'/%3E%3Ccircle cx='43' cy='40' r='6' fill='none' stroke='%2316182B' stroke-width='3.5'/%3E%3Ccircle cx='21' cy='40' r='1.5' fill='%2316182B'/%3E%3Ccircle cx='43' cy='40' r='1.5' fill='%2316182B'/%3E%3C/svg%3E">
+  <div class="wordmark"><h1>TVunboxed</h1><small>mixtape edition</small></div>
+  <button class="theme-toggle" id="themeBtn" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><path d="M20 13A8 8 0 1 1 11 4a6 6 0 0 0 9 9z"/></svg></button>
+  <button class="chip"><span class="dot"></span><span>TV online</span></button>
+  <div class="foil"></div>
+ </header>
+ <div class="screen" id="screen">
+  <div class="page active" id="page-home">
+   <div class="card hero"><div class="bigdot"><svg viewBox="0 0 24 24"><path d="M4 8.5A10 10 0 0 1 20 8.5"/><path d="M7.5 12a6.5 6.5 0 0 1 9 0"/><circle cx="12" cy="15.5" r="1.4"/></svg></div><div><h2>TV online</h2><p>Side A · ready on Wi-Fi</p></div></div>
+   <div class="card"><div class="card-title">Device &amp; TV status <span class="hint" data-refresh>refresh ↻</span></div><div class="tiles">
+    <div class="tile"><span class="t-label">TV link</span><span class="t-value ok">12 ms</span><span class="t-sub">latency</span></div>
+    <div class="tile"><span class="t-label">Model</span><span class="t-value info">E65</span><span class="t-sub">from features</span></div>
+    <div class="tile"><span class="t-label">Battery</span><span class="t-value ok">93%</span><span class="t-sub">charging</span></div>
+    <div class="tile"><span class="t-label">Network</span><span class="t-value info">4G</span><span class="t-sub">1.5 Mb/s</span></div>
+   </div></div>
+   <div class="card"><div class="card-title">Playback <span class="hint" data-refresh>refresh ↻</span></div><div class="tiles">
+    <div class="tile"><span class="t-label">Position</span><span class="t-value info">1:24</span><span class="t-sub">live</span></div>
+    <div class="tile"><span class="t-label">Duration</span><span class="t-value">45:00</span><span class="t-sub">reported</span></div>
+   </div><div class="field" style="margin-top:10px"><input id="seekInput" placeholder="seek to (seconds)" inputmode="numeric"><button class="btn blue" id="seekBtn">Seek</button></div></div>
+   <div class="card"><div class="card-title">Picture &amp; sound</div><p class="hintline">Brightness and equaliser aren't exposed by this TV's control service. Volume, mute and media keys are in the Remote sheet.</p></div>
+  </div>
+  <div class="page" id="page-files">
+   <div class="card"><div class="card-title">Phone share <span class="hint">ready</span></div>
+    <div class="pathbar"><button class="btn iconbtn" data-refresh aria-label="Up">↑</button><input value="/Download" readonly><button class="btn iconbtn" data-refresh aria-label="Refresh">↻</button></div>
+    <div class="search"><input id="fileSearch" placeholder="Search files…"></div>
+    <div class="chips"><button class="chipf active">All</button><button class="chipf">Video</button><button class="chipf">Image</button><button class="chipf">Audio</button><button class="chipf">Docs</button></div>
+    <div id="fileList">
+     <div class="row" data-name="holiday.mp4"><span class="name">▶ holiday.mp4</span><span class="actions"><button data-act="Sent to TV">TV ▶</button><button data-act="Copying to TV upload">TV ⤒</button></span></div>
+     <div class="row" data-name="poster.jpg"><span class="name">▣ poster.jpg</span><span class="actions"><button data-act="Sent to TV">TV ▶</button><button data-act="Copying to TV upload">TV ⤒</button></span></div>
+     <div class="row" data-name="mix.mp3"><span class="name">♪ mix.mp3</span><span class="actions"><button data-act="Sent to TV">TV ▶</button><button data-act="Copying to TV upload">TV ⤒</button></span></div>
+     <div class="row" data-name="notes.pdf"><span class="name">▤ notes.pdf</span><span class="actions"><button data-act="Sent to TV">TV ▶</button><button data-act="Copying to TV upload">TV ⤒</button></span></div>
+    </div>
+   </div>
+  </div>
+  <div class="page" id="page-tv">
+   <div class="card"><div class="card-title">Apps on TV <span class="hint" data-refresh>refresh ↻</span></div><div class="apps" id="appGrid">
+    <div class="app"><div class="ico">YT</div><span>YouTube</span></div><div class="app"><div class="ico">VL</div><span>VLC</span></div><div class="app"><div class="ico">NF</div><span>Netflix</span></div><div class="app"><div class="ico">TV</div><span>TV Setting</span></div>
+    <div class="app"><div class="ico">MI</div><span>Mirror</span></div><div class="app"><div class="ico">BR</div><span>Browser</span></div><div class="app"><div class="ico">PL</div><span>Player</span></div><div class="app"><div class="ico">GM</div><span>Gallery</span></div>
+   </div></div>
+   <div class="card"><div class="card-title">Free channels <span class="hint">presets</span></div>
+    <div class="player" id="player"><span style="font:700 10px monospace;color:var(--ok)">▶</span><div class="pbar"><i></i></div><span id="playerName" style="font:9px monospace;color:var(--dim)">playing</span></div>
+    <div class="search"><input id="chanSearch" placeholder="Filter channels…"></div>
+    <div id="chanList">
+     <div class="row" data-name="Al Jazeera English"><span class="name">Al Jazeera English</span><span class="actions"><button data-play="Al Jazeera English">PLAY</button><button data-act="Opened on TV">TV ▶</button></span></div>
+     <div class="row" data-name="DW English"><span class="name">DW English</span><span class="actions"><button data-play="DW English">PLAY</button><button data-act="Opened on TV">TV ▶</button></span></div>
+     <div class="row" data-name="CGTN"><span class="name">CGTN</span><span class="actions"><button data-play="CGTN">PLAY</button><button data-act="Opened on TV">TV ▶</button></span></div>
+    </div>
+   </div>
+   <div class="card"><div class="card-title">IPTV / Live TV</div><div class="drop"><b>Load Playlist</b>your .m3u stays on this phone</div></div>
+  </div>
+  <div class="page" id="page-tools">
+   <div class="card"><div class="card-title">Type on TV</div><div class="field"><input id="typeText" placeholder="text for focused field"><button class="btn amber" id="typeSend">Send</button></div></div>
+   <div class="card"><div class="card-title">Throw to TV</div>
+    <div class="field"><input placeholder="https://example.com/stream.m3u8"><button class="btn pink" data-act="Opened URL on TV">Open</button></div>
+    <div class="field" style="margin-top:8px"><input placeholder="package name"><button class="btn" data-act="Launched app">Launch</button></div>
+    <div class="btn-row" style="margin-top:8px"><button class="btn" data-act="Switched input">Switch input</button><button class="btn" data-act="Browser opened">Browser</button><button class="btn" data-act="Features read">Identify</button></div>
+   </div>
+   <div class="card danger-zone"><div class="card-title">Danger zone</div><div class="field"><input id="uninstallPkg" placeholder="package to uninstall"><button class="btn danger" id="uninstallBtn">Delete</button></div></div>
+  </div>
+  <div class="page" id="page-care">
+   <div class="card"><div class="card-title">TV Care</div><p class="hintline">Audit apps and files, then reclaim storage in two guarded steps. Nothing is removed until you purge the backups.</p><div class="btn-row" style="margin-top:10px"><button class="btn amber" id="auditBtn">Run audit</button></div>
+    <div class="tiles" style="margin-top:10px"><div class="tile"><span class="t-label">Apps</span><span class="t-value">42</span></div><div class="tile"><span class="t-label">Files</span><span class="t-value">118</span></div><div class="tile"><span class="t-label">Reclaim</span><span class="t-value ok">1.2 GB</span></div><div class="tile"><span class="t-label">Backups</span><span class="t-value">6</span></div></div>
+   </div>
+   <div class="card"><div class="card-title">Reclaimable files</div><div id="careList"><div class="row"><span class="name">Download/cache_old.apk</span><button data-guard="Delete selected files? A backup will be created first.">DELETE</button></div><div class="row"><span class="name">Upload/test_clip.mp4</span><button data-guard="Delete selected files? A backup will be created first.">DELETE</button></div></div></div>
+   <div class="card"><div class="card-title">TV backups</div><div class="row"><span class="name">care/2026-11-22-1</span><button data-guard="Purge this backup permanently? This cannot be undone.">PURGE</button></div></div>
+  </div>
+ </div>
+ <div class="backdrop" id="backdrop"></div>
+ <aside class="drawer" id="drawer" aria-label="Remote sheet">
+  <div class="handle"></div>
+  <div class="drawer-head">Remote<div class="sheet-tabs"><button class="sheet-tab active" data-sheet="0">Side A</button><button class="sheet-tab" data-sheet="1">Side B</button></div><button class="drawer-close" id="drawerClose" aria-label="Close">✕</button></div>
+  <div class="drawer-body"><div class="viewport"><div class="track" id="track">
+   <div class="sheet">
+    <div class="strip4"><button class="btn power" id="powerBtn" aria-label="Power, hold to power off"><span class="fill"></span>⏻</button><button class="btn blue" data-act="Volume down">◀))</button><button class="btn blue" data-act="Volume up">))▶</button><button class="btn pink" data-act="Mute toggled">✕)</button></div>
+    <div class="vol"><span>VOL</span><input id="volRange" type="range" min="0" max="100" value="55" aria-label="Volume"><span id="volNum">55</span></div>
+    <div class="dpad"><span class="spacer"></span><button class="btn" data-act="Up" aria-label="Up">▲</button><span class="spacer"></span><button class="btn" data-act="Left" aria-label="Left">◀</button><button class="btn ok" data-act="OK pressed" aria-label="OK">✓</button><button class="btn" data-act="Right" aria-label="Right">▶</button><span class="spacer"></span><button class="btn" data-act="Down" aria-label="Down">▼</button><span class="spacer"></span></div>
+    <div class="strip3"><button class="btn" data-act="Back">← Back</button><button class="btn" data-act="Home">⌂ Home</button><button class="btn" data-act="Menu">☰ Menu</button></div>
+    <div class="strip4"><button class="btn" data-act="Rewind">◀◀</button><button class="btn green" data-act="Play / pause">▶</button><button class="btn" data-act="Forward">▶▶</button><button class="btn" data-act="Stop">■</button></div>
+    <div class="strip2"><button class="btn" data-act="CH −">CH −</button><button class="btn" data-act="CH +">CH +</button></div>
+   </div>
+   <div class="sheet">
+    <div class="strip2"><button class="btn blue" id="pointerBtn">Enable pointer</button><button class="btn" data-act="Click sent">☝ Click</button></div>
+    <div class="pad" id="pad">drag to move TV pointer</div>
+    <div class="typed" id="typed"><span id="typedText"></span><span class="cursor"></span></div>
+    <div class="kb" id="kb"></div>
+    <p class="hintline">Tap keys to type into the TV's focused field. Shift for uppercase, 123 for symbols.</p>
+   </div>
+  </div></div></div>
+ </aside>
+ <div class="toast" id="toast" role="status"></div>
+ <div class="dlg" id="dlg" role="dialog" aria-modal="true"><div class="dlg-card"><h3>Confirm action</h3><p id="dlgText"></p><div class="btn-row"><button class="btn" id="dlgCancel">Cancel</button><button class="btn danger" id="dlgOk">Confirm</button></div></div></div>
+ <nav class="navbar" aria-label="Sections">
+  <button class="navitem active" data-page="home"><svg viewBox="0 0 24 24"><path d="M4 14a8 8 0 1 1 16 0"/><path d="M12 14l4-4"/></svg>Home</button>
+  <button class="navitem" data-page="files"><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v10H3z"/></svg>Files</button>
+  <button class="navitem" id="navRemote" aria-label="Open remote"><svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="20"/><path d="M11 18h2"/></svg>Remote</button>
+  <button class="navitem" data-page="tv"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13"/><path d="M12 18v3"/></svg>TV</button>
+  <button class="navitem" data-page="tools"><svg viewBox="0 0 24 24"><path d="M14 7l-6.5 6.5a2 2 0 0 0 2.8 2.8L17 9.5"/></svg>Tools</button>
+  <button class="navitem" data-page="care"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V7z"/></svg>Care</button>
+ </nav>
+</div>
+<script>
+var q=function(s){return document.querySelector(s)},qa=function(s){return [].slice.call(document.querySelectorAll(s))};
+var toastT;
+function toast(msg){var t=q('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on')},1800)}
+function setPage(id){qa('.page').forEach(function(p){p.classList.toggle('active',p.id==='page-'+id)});qa('.navitem[data-page]').forEach(function(b){b.classList.toggle('active',b.dataset.page===id)});q('#screen').scrollTop=0;
+ if(id==='tv'){var g=q('#appGrid');g.innerHTML='';for(var i=0;i<8;i++)g.innerHTML+='<div class="app"><div class="sk" style="width:46px;height:46px"></div><div class="sk" style="width:40px"></div></div>';setTimeout(function(){g.innerHTML='<div class="app"><div class="ico">YT</div><span>YouTube</span></div><div class="app"><div class="ico">VL</div><span>VLC</span></div><div class="app"><div class="ico">NF</div><span>Netflix</span></div><div class="app"><div class="ico">TV</div><span>TV Setting</span></div><div class="app"><div class="ico">MI</div><span>Mirror</span></div><div class="app"><div class="ico">BR</div><span>Browser</span></div><div class="app"><div class="ico">PL</div><span>Player</span></div><div class="app"><div class="ico">GM</div><span>Gallery</span></div>'},800)}}
+qa('.navitem[data-page]').forEach(function(b){b.addEventListener('click',function(){setPage(b.dataset.page)})});
+var drawer=q('#drawer'),backdrop=q('#backdrop');
+function setDrawer(o){drawer.classList.toggle('open',o);backdrop.classList.toggle('open',o);drawer.setAttribute('aria-hidden',String(!o))}
+q('#navRemote').addEventListener('click',function(){setDrawer(!drawer.classList.contains('open'))});
+backdrop.addEventListener('click',function(){setDrawer(false)});q('#drawerClose').addEventListener('click',function(){setDrawer(false)});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){setDrawer(false);q('#dlg').classList.remove('open')}});
+var track=q('#track');qa('.sheet-tab').forEach(function(t){t.addEventListener('click',function(){var i=+t.dataset.sheet;track.style.transform='translateX(-'+(i*100)+'%)';qa('.sheet-tab').forEach(function(x){x.classList.toggle('active',x===t)})})});
+var pwr=q('#powerBtn'),held=false,pt;
+pwr.addEventListener('pointerdown',function(){held=false;pwr.classList.add('holding');pt=setTimeout(function(){held=true;toast('Long press: power off sent')},600)});
+['pointerup','pointercancel','pointerleave'].forEach(function(ev){pwr.addEventListener(ev,function(){clearTimeout(pt);pwr.classList.remove('holding');if(ev==='pointerup'&&!held)toast('Power sent')})});
+var vol=q('#volRange');vol.addEventListener('input',function(){vol.style.setProperty('--fill',vol.value+'%');q('#volNum').textContent=vol.value});vol.addEventListener('change',function(){toast('Volume '+vol.value)});vol.style.setProperty('--fill','55%');
+qa('[data-act]').forEach(function(b){b.addEventListener('click',function(){toast(b.dataset.act)})});
+qa('.chipf').forEach(function(c){c.addEventListener('click',function(){qa('.chipf').forEach(function(x){x.classList.remove('active')});c.classList.add('active');var f=c.textContent.trim();qa('#fileList .row').forEach(function(r){r.style.display=(f==='All'||r.dataset.name.toLowerCase().indexOf(f.toLowerCase())>=0)?'':'none'})})});
+q('#fileSearch').addEventListener('input',function(e){var v=e.target.value.toLowerCase();qa('#fileList .row').forEach(function(r){r.style.display=r.dataset.name.toLowerCase().indexOf(v)>=0?'':'none'})});
+q('#chanSearch').addEventListener('input',function(e){var v=e.target.value.toLowerCase();qa('#chanList .row').forEach(function(r){r.style.display=r.dataset.name.toLowerCase().indexOf(v)>=0?'':'none'})});
+qa('[data-play]').forEach(function(b){b.addEventListener('click',function(){var p=q('#player');p.classList.add('on');q('#playerName').textContent=b.dataset.play;p.querySelector('.pbar').innerHTML='<i></i>';toast('Playing '+b.dataset.play+' in page')})});
+q('#seekBtn').addEventListener('click',function(){var v=q('#seekInput').value;toast(v?('Seek sent · '+v+'s'):'Enter seconds first')});
+function typeText(s){var el=q('#typedText');el.textContent+=s;el.style.animation='none';void el.offsetWidth;el.style.animation='fade .2s'}
+q('#typeSend').addEventListener('click',function(){var v=q('#typeText').value;if(v){typeText(v+' ');toast('Typed on TV');q('#typeText').value=''}});
+var rows=[['1','2','3','4','5','6','7','8','9','0','-','='],['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['shift','z','x','c','v','b','n','m','back'],['tab','123','space','enter']];
+var sym=[['!','@','#','$','%','&','*','(',')'],['-','_','=','+','[',']','{','}','/'],[';',':','"',',','.','<','>','?'],['~','^','|','+','-','OK','back'],['tab','abc','space','enter']];
+var layer='abc',shift=false;
+function renderKb(){var kb=q('#kb');kb.innerHTML='';(layer==='abc'?rows:sym).forEach(function(row){var r=document.createElement('div');r.className='krow';row.forEach(function(k){var b=document.createElement('button');var fn=(k==='shift'||k==='back'||k==='tab'||k==='enter'||k==='123'||k==='abc');b.className='key'+((fn)?' fn':'')+((k==='space'||k==='enter')?' wide':'');b.textContent=(layer==='abc'&&shift&&k.length===1&&/[a-z]/.test(k))?k.toUpperCase():k;
+if(k==='shift'){b.classList.toggle('active',shift);b.onclick=function(){shift=!shift;renderKb()}}
+else if(k==='back'){b.onclick=function(){var t=q('#typedText');t.textContent=t.textContent.slice(0,-1)}}
+else if(k==='enter'){b.onclick=function(){typeText(String.fromCharCode(10));toast('Enter sent')}}
+else if(k==='tab'){b.onclick=function(){toast('Tab sent')}}
+else if(k==='123'||k==='abc'){b.onclick=function(){layer=(k==='123'?'sym':'abc');renderKb()}}
+else if(k==='space'){b.onclick=function(){typeText(' ')}}
+else{b.onclick=function(){typeText((layer==='abc'&&shift)?k.toUpperCase():k);if(shift){shift=false;renderKb()}}}
+r.appendChild(b)});kb.appendChild(r)})}
+renderKb();
+var pad=q('#pad'),last=null;pad.addEventListener('pointerdown',function(e){last={x:e.clientX,y:e.clientY}});pad.addEventListener('pointermove',function(e){if(!last)return;var dx=e.clientX-last.x,dy=e.clientY-last.y;if(Math.abs(dx)+Math.abs(dy)>8){pad.textContent='pointer moved '+dx+','+dy;last={x:e.clientX,y:e.clientY}}});
+q('#pointerBtn').addEventListener('click',function(){var b=q('#pointerBtn');b.textContent=b.textContent.indexOf('Enable')>=0?'Disable pointer':'Enable pointer';toast('Pointer toggled')});
+var dlg=q('#dlg');function confirmD(text,fn){q('#dlgText').textContent=text;dlg.classList.add('open');q('#dlgOk').onclick=function(){dlg.classList.remove('open');fn()}}
+q('#dlgCancel').addEventListener('click',function(){dlg.classList.remove('open')});
+qa('[data-guard]').forEach(function(b){b.addEventListener('click',function(){confirmD(b.dataset.guard,function(){toast('Confirmed · action sent')})})});
+q('#uninstallBtn').addEventListener('click',function(){var p=q('#uninstallPkg').value.trim();if(!p){toast('Enter a package name');return}confirmD('Uninstall '+p+' from the TV? This cannot be undone.',function(){toast('Uninstall requested')})});
+q('#auditBtn').addEventListener('click',function(){toast('Audit running…');setTimeout(function(){toast('Audit done · 1.2 GB reclaimable')},700)});
+qa('[data-refresh]').forEach(function(el){el.addEventListener('click',function(){toast('Refreshed');var card=el.closest('.card');card.style.opacity='.5';setTimeout(function(){card.style.opacity='1'},350)})});
+q('#themeBtn').addEventListener('click',function(){var h=document.documentElement,n=h.getAttribute('data-theme');h.setAttribute('data-theme',n==='dark'?'light':'dark');toast((n==='dark'?'Light':'Dark')+' mode')});
+function tick(){var d=new Date();q('#clock').textContent=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}tick();setInterval(tick,20000);
+</script>
+</body>
+</html>
