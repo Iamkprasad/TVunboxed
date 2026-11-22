@@ -2,7 +2,6 @@ package com.tvunboxed.app
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -11,19 +10,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBarItem
@@ -49,12 +47,14 @@ import androidx.navigation.compose.rememberNavController
 import com.tvunboxed.app.core.Protocol
 import com.tvunboxed.app.core.TvDevice
 import com.tvunboxed.app.ui.CareScreen
-import com.tvunboxed.app.ui.CastScreen
 import com.tvunboxed.app.ui.FilesScreen
+import com.tvunboxed.app.ui.HomeScreen
 import com.tvunboxed.app.ui.MirrorScreen
 import com.tvunboxed.app.ui.RemoteScreen
 import com.tvunboxed.app.ui.StatusBanner
 import com.tvunboxed.app.ui.TVunboxedTheme
+import com.tvunboxed.app.ui.ToolsScreen
+import com.tvunboxed.app.ui.WatchScreen
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
 private data class Dest(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun TVunboxedApp(vm: MainViewModel) {
     val navController = rememberNavController()
@@ -109,11 +109,10 @@ private fun TVunboxedApp(vm: MainViewModel) {
     var manualDialog by remember { mutableStateOf(false) }
 
     val destinations = listOf(
-        Dest("remote", "Remote", Icons.Filled.Home),
-        Dest("cast", "Cast", Icons.Filled.PlayArrow),
-        Dest("mirror", "Mirror", Icons.Filled.Settings),
+        Dest("home", "Home", Icons.Filled.Home),
         Dest("files", "Files", Icons.Filled.List),
-        Dest("care", "TV Care", Icons.Filled.Info)
+        Dest("watch", "Watch", Icons.Filled.PlayArrow),
+        Dest("tools", "Tools", Icons.Filled.Info)
     )
 
     Scaffold(
@@ -151,6 +150,11 @@ private fun TVunboxedApp(vm: MainViewModel) {
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { navController.navigate("remote") }) {
+                Icon(Icons.Filled.Settings, contentDescription = "Remote")
+            }
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -159,12 +163,13 @@ private fun TVunboxedApp(vm: MainViewModel) {
                 CircularProgressIndicator(Modifier.padding(8.dp).size(22.dp), strokeWidth = 2.dp)
             }
             Box(Modifier.weight(1f)) {
-                NavHost(navController, startDestination = "remote") {
-                    composable("remote") { RemoteScreen(vm) }
-                    composable("cast") { CastScreen(vm) }
-                    composable("mirror") { MirrorScreen(vm) }
+                NavHost(navController, startDestination = "home") {
+                    composable("home") { HomeScreen(vm, onOpenRemote = { navController.navigate("remote") }, onOpenAir = { navController.navigate("remote") }) }
                     composable("files") { FilesScreen(vm) }
-                    composable("care") { CareScreen(vm) }
+                    composable("watch") { WatchScreen(vm) }
+                    composable("tools") { ToolsScreen(vm) }
+                    composable("remote") { RemoteScreen(vm) }
+                    composable("mirror") { MirrorScreen(vm) }
                 }
             }
         }
@@ -180,7 +185,7 @@ private fun TVunboxedApp(vm: MainViewModel) {
             text = {
                 Column {
                     OutlinedTextField(ip, { ip = it }, label = { Text("TV IP") }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Next))
                     OutlinedTextField(controlPort, { controlPort = it }, label = { Text("Control port") }, singleLine = true)
                     OutlinedTextField(httpPort, { httpPort = it }, label = { Text("HTTP port") }, singleLine = true)
                     state.discovered.take(4).forEach { device: TvDevice ->
@@ -202,4 +207,3 @@ private fun TVunboxedApp(vm: MainViewModel) {
         )
     }
 }
-

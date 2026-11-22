@@ -271,7 +271,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
                 if "=" in piece:
                     k, v = piece.split("=", 1)
                     query[k] = v
-        target = query.get("dir", "/")
+        target = urllib.parse.unquote(query.get("dir", "/"))
         try:
             listing = self._dav().list(target)
         except FileNotFoundError:
@@ -542,7 +542,7 @@ class RemoteHandler(BaseHTTPRequestHandler):
                     key, value = piece.split("=", 1)
                     query[key] = value
         try:
-            result = list_share(self.server.share, query.get("dir", "."))
+            result = list_share(self.server.share, urllib.parse.unquote(query.get("dir", ".")))
         except (ValueError, OSError) as exc:
             return self._send_json({"ok": False, "error": str(exc)}, 400)
         parent = os.path.dirname(result["dir"].strip("/"))
