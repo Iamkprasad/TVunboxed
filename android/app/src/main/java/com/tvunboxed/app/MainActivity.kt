@@ -5,38 +5,42 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -46,15 +50,24 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.tvunboxed.app.core.Protocol
 import com.tvunboxed.app.core.TvDevice
-import com.tvunboxed.app.ui.CareScreen
-import com.tvunboxed.app.ui.FilesScreen
+import com.tvunboxed.app.ui.CapabilityChips2
+import com.tvunboxed.app.ui.EmptyState2
 import com.tvunboxed.app.ui.HomeScreen
-import com.tvunboxed.app.ui.MirrorScreen
 import com.tvunboxed.app.ui.RemoteScreen
-import com.tvunboxed.app.ui.StatusBanner
+import com.tvunboxed.app.ui.StatusBanner2
+import com.tvunboxed.app.ui.TvButton
+import com.tvunboxed.app.ui.TvButtonVariant
+import com.tvunboxed.app.ui.TvCard
 import com.tvunboxed.app.ui.TVunboxedTheme
-import com.tvunboxed.app.ui.ToolsScreen
+import com.tvunboxed.app.ui.TvIcon
+import com.tvunboxed.app.ui.TvIconButton
+import com.tvunboxed.app.ui.TvMono
+import com.tvunboxed.app.ui.TvSans
+import com.tvunboxed.app.ui.TvSerif
+import com.tvunboxed.app.ui.TvTextField
+import com.tvunboxed.app.ui.FilesScreen
 import com.tvunboxed.app.ui.WatchScreen
+import com.tvunboxed.app.ui.ToolsScreen
 
 class MainActivity : ComponentActivity() {
     private val vm: MainViewModel by viewModels()
@@ -62,26 +75,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntent(intent)
-        setContent {
-            TVunboxedTheme {
-                TVunboxedApp(vm)
-            }
-        }
+        setContent { com.tvunboxed.app.web.WebViewScreen(vm, onBackPressedDispatcher, this) }
     }
 
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        handleIntent(intent)
-    }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); handleIntent(intent) }
 
     private fun handleIntent(intent: Intent) {
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 val text = intent.getStringExtra(Intent.EXTRA_TEXT)
-                if (!text.isNullOrBlank() && text.contains("://")) {
-                    vm.sendUrl(text)
-                    return
-                }
+                if (!text.isNullOrBlank() && text.contains("://")) { vm.sendUrl(text); return }
                 intent.getParcelableExtra<android.net.Uri>(Intent.EXTRA_STREAM)?.let { uri ->
                     val name = uri.toString().substringAfterLast('/').ifBlank { "shared-file" }
                     vm.copyUriToFile(uri, name)?.let { vm.addToQueue(it) }
@@ -97,9 +100,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class Dest(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
-
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun TVunboxedApp(vm: MainViewModel) {
     val navController = rememberNavController()
@@ -108,68 +108,52 @@ private fun TVunboxedApp(vm: MainViewModel) {
     val current = backStack?.destination
     var manualDialog by remember { mutableStateOf(false) }
 
-    val destinations = listOf(
-        Dest("home", "Home", Icons.Filled.Home),
-        Dest("files", "Files", Icons.Filled.List),
-        Dest("watch", "Watch", Icons.Filled.PlayArrow),
-        Dest("tools", "Tools", Icons.Filled.Info)
-    )
+    val destinations = listOf("home" to "Home", "files" to "Files", "watch" to "Watch", "tools" to "Tools")
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("TVunboxed")
-                        Text(
-                            "${state.device?.name ?: "No TV"} · ${if (state.connected) "connected" else "offline"}",
-                            style = androidx.compose.material3.MaterialTheme.typography.bodySmall
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { vm.scan() }) { Icon(Icons.Filled.Refresh, "Scan") }
-                    Button(onClick = { manualDialog = true }) { Text("Connect") }
+    Column(Modifier.fillMaxSize().background(Color(0xFF0E0F1A))) {
+        // App bar
+        Box(Modifier.fillMaxWidth().background(Color(0xFF16182B))) {
+            Row(Modifier.fillMaxWidth().padding(9.dp, 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+                TvIcon("tv", size = 38.dp, tint = Color.Unspecified)
+                Column {
+                    Text("TVunboxed", fontFamily = TvSerif, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color(0xFFEDEFFC))
+                    Text("mixtape edition", fontFamily = TvMono, fontSize = 11.sp, color = Color(0xFFA6ACD6))
                 }
-            )
-        },
-        bottomBar = {
-            BottomAppBar {
-                destinations.forEach { dest ->
-                    NavigationBarItem(
-                        selected = current?.hierarchy?.any { it.route == dest.route } == true,
-                        onClick = {
-                            navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { Icon(dest.icon, contentDescription = dest.label, Modifier.size(24.dp)) },
-                        label = { Text(dest.label) }
-                    )
+                Spacer(Modifier.weight(1f))
+                // TV chip
+                Row(Modifier.height(42.dp).background(Color(0xFF1F2238)).border(2.dp, Color(0xFF636889)).padding(horizontal = 9.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Box(Modifier.size(9.dp).background(Color(0xFFC5E17A)))
+                    Text(state.device?.name ?: "No TV", fontFamily = TvMono, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFEDEFFC))
+                    TvIcon("down", size = 14.dp, tint = Color(0xFFA6ACD6))
                 }
+                TvIconButton(onClick = { manualDialog = true }) { TvIcon("gear", size = 20.dp, tint = Color(0xFFEDEFFC)) }
             }
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { navController.navigate("remote") }) {
-                Icon(Icons.Filled.Settings, contentDescription = "Remote")
+            // foil
+            val t = rememberInfiniteTransition(label = "foil")
+            val off by t.animateFloat(0f, 1f, infiniteRepeatable(tween(9000, easing = LinearEasing), RepeatMode.Restart), label = "foiloff")
+            Box(Modifier.fillMaxWidth().height(3.dp).align(Alignment.BottomCenter).background(
+                Brush.horizontalGradient(listOf(Color(0xFFCCCFFA), Color(0xFFFFBFD9), Color(0xFFB2F0ED), Color(0xFFC5E17A), Color(0xFFADDBFF), Color(0xFFD5CDFF), Color(0xFFCCCFFA)))
+            ))
+        }
+        StatusBanner2(state.status, state.busy)
+        if (state.busy) CircularProgressIndicator(Modifier.padding(8.dp).size(22.dp), strokeWidth = 2.dp)
+        Box(Modifier.weight(1f)) {
+            NavHost(navController, startDestination = "home") {
+                composable("home") { HomeScreen(vm, onOpenRemote = { navController.navigate("remote") }, onOpenAir = { navController.navigate("remote") }) }
+                composable("files") { FilesScreen(vm) }
+                composable("watch") { WatchScreen(vm) }
+                composable("tools") { ToolsScreen(vm) }
+                composable("remote") { RemoteScreen(vm) }
             }
         }
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            StatusBanner(state.status, state.busy)
-            if (state.busy) {
-                CircularProgressIndicator(Modifier.padding(8.dp).size(22.dp), strokeWidth = 2.dp)
-            }
-            Box(Modifier.weight(1f)) {
-                NavHost(navController, startDestination = "home") {
-                    composable("home") { HomeScreen(vm, onOpenRemote = { navController.navigate("remote") }, onOpenAir = { navController.navigate("remote") }) }
-                    composable("files") { FilesScreen(vm) }
-                    composable("watch") { WatchScreen(vm) }
-                    composable("tools") { ToolsScreen(vm) }
-                    composable("remote") { RemoteScreen(vm) }
-                    composable("mirror") { MirrorScreen(vm) }
+        // Bottom nav
+        Row(Modifier.fillMaxWidth().height(64.dp).background(Color(0xFF16182B)).border(width = 1.dp, color = Color(0xFF2C3048)), verticalAlignment = Alignment.CenterVertically) {
+            destinations.forEach { (route, label) ->
+                val selected = current?.hierarchy?.any { it.route == route } == true
+                Column(Modifier.weight(1f).clickable { navController.navigate(route) { popUpTo(navController.graph.findStartDestination().id) { saveState = true }; launchSingleTop = true; restoreState = true } }, horizontalAlignment = Alignment.CenterHorizontally) {
+                    val icon = when (route) { "home" -> "home"; "files" -> "folder"; "watch" -> "tv"; else -> "tools" }
+                    TvIcon(icon, size = 22.dp, tint = if (selected) Color(0xFF2A1159) else Color(0xFFA6ACD6))
+                    Text(label, fontFamily = TvSans, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (selected) Color(0xFF2A1159) else Color(0xFFA6ACD6))
                 }
             }
         }
@@ -179,31 +163,18 @@ private fun TVunboxedApp(vm: MainViewModel) {
         var ip by remember { mutableStateOf(state.device?.ip ?: "192.168.1.201") }
         var controlPort by remember { mutableStateOf(Protocol.CONTROL_PORT.toString()) }
         var httpPort by remember { mutableStateOf(Protocol.HTTP_PORT.toString()) }
-        AlertDialog(
+        androidx.compose.material3.AlertDialog(
             onDismissRequest = { manualDialog = false },
             title = { Text("Connect to TV") },
             text = {
                 Column {
-                    OutlinedTextField(ip, { ip = it }, label = { Text("TV IP") }, singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Next))
-                    OutlinedTextField(controlPort, { controlPort = it }, label = { Text("Control port") }, singleLine = true)
-                    OutlinedTextField(httpPort, { httpPort = it }, label = { Text("HTTP port") }, singleLine = true)
-                    state.discovered.take(4).forEach { device: TvDevice ->
-                        Button(onClick = {
-                            vm.connect(device)
-                            manualDialog = false
-                        }) { Text("Connect to ${device.name} (${device.ip})") }
-                    }
+                    TvTextField(ip, { ip = it }, "TV IP")
+                    TvTextField(controlPort, { controlPort = it }, "Control port")
+                    TvTextField(httpPort, { httpPort = it }, "HTTP port")
                 }
             },
-            confirmButton = {
-                Button(onClick = {
-                    vm.connectManual(ip, controlPort.toIntOrNull() ?: Protocol.CONTROL_PORT,
-                        httpPort.toIntOrNull() ?: Protocol.HTTP_PORT)
-                    manualDialog = false
-                }) { Text("Connect") }
-            },
-            dismissButton = { Button(onClick = { manualDialog = false }) { Text("Cancel") } }
+            confirmButton = { TvButton(onClick = { vm.connectManual(ip, controlPort.toIntOrNull() ?: Protocol.CONTROL_PORT, httpPort.toIntOrNull() ?: Protocol.HTTP_PORT); manualDialog = false }) { Text("Connect") } },
+            dismissButton = { TvButton(onClick = { manualDialog = false }, variant = TvButtonVariant.Default) { Text("Cancel") } }
         )
     }
 }

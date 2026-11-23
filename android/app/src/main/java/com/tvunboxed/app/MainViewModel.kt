@@ -200,6 +200,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun uninstall(packageName: String) = send(Protocol.uninstall(packageName), "Uninstall requested")
     fun openLink(url: String) = send(Protocol.openLink(url), "Opening $url on TV")
     fun saveFile(url: String, mime: String) = send(Protocol.saveFile(url, mime), "Save requested")
+    fun openFile(path: String, mime: String) {
+        val device = _state.value.device ?: return setStatus("Connect to a TV first")
+        val url = "http://${device.ip}:${device.httpPort}${if (path.startsWith("/")) "" else "/"}$path"
+        send(Protocol.openFile(url, mime), "Opening $path on TV")
+    }
     fun media(command: String) = send(Protocol.mediaCommand(command), "Media: $command")
     fun seek(ms: Long) = send(Protocol.seek(ms), "Seeking to ${ms}ms")
 
